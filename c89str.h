@@ -1036,6 +1036,7 @@ static int c89str_vscprintf_internal(const c89str_allocation_callbacks* pAllocat
 {
 #if defined(_MSC_VER)
     #if _MSC_VER > 1200
+        C89STR_UNUSED(pAllocationCallbacks);
         return _vscprintf(pFormat, args);
     #else
         /*
@@ -1075,6 +1076,7 @@ static int c89str_vscprintf_internal(const c89str_allocation_callbacks* pAllocat
         return result;
     #endif
 #else
+    C89STR_UNUSED(pAllocationCallbacks);
     return vsnprintf(NULL, 0, pFormat, args);
 #endif
 }
@@ -1450,6 +1452,8 @@ C89STR_API errno_t c89str_remove(c89str* pStr, const c89str_allocation_callbacks
     c89str str;
     size_t len;
     size_t lenToRemove;
+
+    C89STR_UNUSED(pAllocationCallbacks);
 
     if (pStr == NULL) {
         return EINVAL;
