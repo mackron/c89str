@@ -13,6 +13,7 @@ Main features:
   - An API for dynamic strings (`c89str`).
   - Alternatives to some standard library functions.
   - A suite of miscellaneous APIs that might be useful.
+  - An implementation of sprintf().
 
 The APIs in this library are focused on flexibility and will favor verbosity over simplicity. All functions return
 a result code. When a function could possibly need to do a memory allocation, a parameter will exist for a pointer
