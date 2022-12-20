@@ -328,12 +328,32 @@ C89STR_API errno_t c89str_lexer_transform_token(c89str_lexer* pLexer, c89str* pS
 
 
 
+/* sprintf() implementation via stb_sprintf(). */
+/* beg stb_sprintf.h */
+
+/* end stb_sprintf.h */
+
+
 #endif  /* c89str_h */
 
 
 #if defined(C89STR_IMPLEMENTATION)
 #ifndef c89str_c
 #define c89str_c
+
+#if defined(__has_c_attribute)
+    #if __has_c_attribute(fallthrough)
+        #define C89STR_FALLTHROUGH [[fallthrough]]
+    #endif
+#endif
+#if !defined(C89STR_FALLTHROUGH) && defined(__has_attribute) && (defined(__clang__) || defined(__GNUC__))
+    #if __has_attribute(fallthrough)
+        #define C89STR_FALLTHROUGH __attribute__((fallthrough))
+    #endif
+#endif
+#if !defined(C89STR_FALLTHROUGH)
+    #define C89STR_FALLTHROUGH ((void)0)
+#endif
 
 #include <stdlib.h> /* malloc(), realloc(), free(). */
 #include <string.h> /* For memcpy(). */
@@ -1024,7 +1044,7 @@ C89STR_API c89str_bool32 c89str_ends_with(const char* str1, size_t str1Len, cons
     }
 
     if (str1Len < str2Len) {
-        C89STR_FALSE;
+        return C89STR_FALSE;
     }
 
     return c89str_strncmp(str1 + str1Len - str2Len, str2, str2Len) == 0;
@@ -1276,8 +1296,8 @@ C89STR_API errno_t c89str_setn(c89str* pStr, const c89str_allocation_callbacks* 
 C89STR_API errno_t c89str_setv(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args)
 {
     va_list args2;
-    size_t  len;
-    c89str  str;
+    int len;
+    c89str str;
 
     if (pFormat == NULL) {
         return EINVAL;
@@ -1385,7 +1405,7 @@ C89STR_API errno_t c89str_catv(c89str* pStr, const c89str_allocation_callbacks* 
 {
     va_list args2;
     size_t len;
-    size_t otherLen;
+    int otherLen;
     c89str str;
 
     if (pFormat == NULL) {
@@ -4789,7 +4809,7 @@ static errno_t c89str_lexer_unescape_string(c89str* pStr, const c89str_allocatio
     }
 
     /* We need to remove the surrounding quotes. */
-    if (pToken[0] == '\"' || pToken[0] == '\'' && tokenLen >= 2) {
+    if ((pToken[0] == '\"' || pToken[0] == '\'') && tokenLen >= 2) {
         result = c89str_newn(&str, pAllocationCallbacks, pToken + 1, tokenLen - 2);
     } else {
         result = c89str_newn(&str, pAllocationCallbacks, pToken, tokenLen);
@@ -5260,7 +5280,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
                         }
                     }
                 }
-            } /* fallthrough */;
+            } C89STR_FALLTHROUGH /* fallthrough */;
 
             case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
             {
@@ -5490,7 +5510,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
                 if ((txt[off] >= 'a' && txt[off] <= 'z') ||
                     (txt[off] >= 'A' && txt[off] <= 'Z') ||
                     (txt[off] == '_')                    ||
-                    (txt[off] >= 0x80)) {
+                    ((unsigned char)txt[off] >= 0x80)) {
                     size_t tokenMaxLen = c89str_utf8_next_whitespace(txt + off, (len - off));   /* <-- We'll be using this to ensure we don't include any Unicode whitespace characters. */
                     size_t tokenLen = 0;
 
@@ -5505,7 +5525,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
                             (txt[off+tokenLen] >= '0' && txt[off+tokenLen] <= '9')                 ||
                             (txt[off+tokenLen] == '_')                                             ||
                             (txt[off+tokenLen] == '-' && pLexer->options.allowDashesInIdentifiers) ||   /* Enables support for kabab-case. */
-                            (txt[off+tokenLen] >= 0x80)) {
+                            ((unsigned char)txt[off+tokenLen] >= 0x80)) {
                             continue;   /* Still valid. */
                         } else {
                             break;      /* Not a valid character for an identifier. We're done. */
@@ -5569,6 +5589,14 @@ C89STR_API errno_t c89str_lexer_transform_token(c89str_lexer* pLexer, c89str* pS
     /* Getting here means it's not a string nor a comment. We don't need to transform anything so we just create a new string. */
     return c89str_newn(pStr, pAllocationCallbacks, pLexer->pTokenStr, pLexer->tokenLen);
 }
+
+
+
+/* ===== Amalgamations Below ===== */
+
+/* beg stb_sprintf.c */
+
+/* end stb_sprintf.c */
 
 
 
