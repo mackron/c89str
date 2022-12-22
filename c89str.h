@@ -36,6 +36,10 @@ compatibility between different compilers.
 #include <stdarg.h> /* For va_list */
 #include <errno.h>  /* For errno_t */
 
+#if defined(__EMSCRIPTEN__)
+typedef int errno_t;
+#endif
+
 #ifndef C89STR_API
 #ifdef __cplusplus
 #define C89STR_API extern "C"
