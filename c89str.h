@@ -1126,6 +1126,8 @@ C89STR_API errno_t c89str_to_uint(const char* str, size_t len, unsigned int* pVa
         str += 1;
     }
 
+    *pValue = value;
+
     return C89STR_SUCCESS;
 }
 
