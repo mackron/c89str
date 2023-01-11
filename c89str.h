@@ -168,6 +168,7 @@ C89STR_API int c89str_strncmpn(const char* str1, size_t str1Len, const char* str
 C89STR_API c89str_bool32 c89str_begins_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 begins with str2. */
 C89STR_API c89str_bool32 c89str_ends_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 ends with str2. */
 C89STR_API errno_t c89str_to_uint(const char* str, size_t strLen, unsigned int* pValue);
+C89STR_API errno_t c89str_to_int(const char* str, size_t strLen, int* pValue);
 
 
 /* Unicode API */
@@ -1127,6 +1128,42 @@ C89STR_API errno_t c89str_to_uint(const char* str, size_t len, unsigned int* pVa
     }
 
     *pValue = value;
+
+    return C89STR_SUCCESS;
+}
+
+C89STR_API errno_t c89str_to_int(const char* str, size_t len, int* pValue)
+{
+    int sign  = 1;
+    int value = 0;
+
+    if (pValue == NULL || c89str_utf8_is_null_or_whitespace(str, len)) {
+        return EINVAL;
+    }
+
+    if (str[0] == '-') {
+        sign = -1;
+    } else {
+        sign = +1;
+    }
+
+    str += 1;
+    len -= 1;
+
+    while (len > 0 && str[0] != '\0') {
+        if (str[0] >= '0' && str[0] <= '9') {
+            value *= 10;
+            value += str[0] - '0';
+        } else {
+            /* Not an integer. */
+            return EINVAL;
+        }
+
+        str += 1;
+        len -= 1;
+    }
+
+    *pValue = value * sign;
 
     return C89STR_SUCCESS;
 }
