@@ -1429,6 +1429,7 @@ C89STR_API errno_t c89str_setn(c89str* pStr, const c89str_allocation_callbacks* 
         C89STR_COPY_MEMORY(str, pOther, otherLen);   /* Will be explicitly null terminated later. */
     } else {
         /* str and pOther are the same string. No need for a data copy. */
+        C89STR_ASSERT(str != NULL);
     }
 
     /* Null terminate and set the length. */
