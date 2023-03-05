@@ -299,6 +299,10 @@ C89STR_API errno_t c89str_cat(c89str* pStr, const c89str_allocation_callbacks* p
 C89STR_API errno_t c89str_catn(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
 C89STR_API errno_t c89str_catv(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
 C89STR_API errno_t c89str_catf(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
+C89STR_API errno_t c89str_prepend(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
+C89STR_API errno_t c89str_prependn(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
+C89STR_API errno_t c89str_prependv(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
+C89STR_API errno_t c89str_prependf(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
 C89STR_API errno_t c89str_remove(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, size_t beg, size_t end);
 C89STR_API errno_t c89str_replace(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, size_t replaceOffset, size_t replaceLength, const char* pOther, size_t otherLength);
 C89STR_API errno_t c89str_replace_all(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pQuery, size_t queryLen, const char* pReplacement, size_t replacementLen);
@@ -1609,6 +1613,151 @@ C89STR_API errno_t c89str_catf(c89str* pStr, const c89str_allocation_callbacks* 
     va_start(args, pFormat);
     {
         result = c89str_catv(pStr, pAllocationCallbacks, pFormat, args);
+    }
+    va_end(args);
+
+    return result;
+}
+
+C89STR_API errno_t c89str_prepend(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther)
+{
+    if (pOther == NULL) {
+        pOther = "";
+    }
+
+    return c89str_prependn(pStr, pAllocationCallbacks, pOther, c89str_strlen(pOther));
+}
+
+C89STR_API errno_t c89str_prependn(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen)
+{
+    c89str str;
+    size_t len;
+
+    if (pStr == NULL) {
+        return EINVAL;
+    }
+
+    if (pOther == NULL) {
+        pOther = "";
+    }
+
+    if (otherLen == (size_t)-1) {
+        otherLen = c89str_strlen(pOther);
+    }
+
+    str = *pStr;
+    if (str == NULL) {
+        /* Input string is null. This is just an assignment. */
+        return c89str_setn(pStr, pAllocationCallbacks, pOther, otherLen);
+    }
+
+    len = c89str_get_len(str);
+    str = c89str_realloc_string_if_necessary(str, len + otherLen, pAllocationCallbacks);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    C89STR_MOVE_MEMORY(str + otherLen, str, len + 1);   /* Move the existing string to the right. +1 for the null terminator. */
+    C89STR_COPY_MEMORY(str, pOther, otherLen);          /* Copy the new string to the left. */
+
+    /* Set the length (null terminator was already done. */
+    c89str_set_len(str, len + otherLen);
+
+    /* At this point we're done. */
+    *pStr = str;
+    return C89STR_SUCCESS;
+}
+
+C89STR_API errno_t c89str_prependv(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args)
+{
+    va_list args2;
+    size_t len;
+    int otherLen;
+    c89str str;
+
+    if (pFormat == NULL) {
+        return EINVAL;
+    }
+
+#if !defined(_MSC_VER) || _MSC_VER >= 1800
+    va_copy(args2, args);
+#else
+    args2 = args;
+#endif
+
+    otherLen = c89str_vsprintf_internal(pAllocationCallbacks, NULL, pFormat, args2);
+    if (otherLen < 0) {
+        return errno;  /* Error occurred with formatting. */
+    }
+
+    va_end(args2);
+
+
+    /* Make sure there's enough room for the new string. */
+    len = 0;
+    str = *pStr;
+    if (str != NULL) {
+        len = c89str_get_len(str);
+    }
+
+    str = c89str_realloc_string_if_necessary(*pStr, len + otherLen, pAllocationCallbacks);
+    if (str == NULL) {
+        return ENOMEM;
+    }
+
+    /*
+    Prepending is awkward here because we want to avoid as much data movement as possible which
+    means it makes sense to format straight into the string. We would need to move the existing
+    string down to make room for the new string, but the problem is that formatting straight into
+    the output buffer will result in the null terminator overwriting the first character of the
+    existing string.
+
+    What we're doing here is grabbing the first character of the existing string and storing it.
+    Then we move the existing string down to make room for the new string. We then format the new
+    string straight into the buffer which will result in the null terminator overwriting the first
+    character of the existing string. We then restore the first character of the existing string.
+    */
+
+    /* Grab the first character of the existing string. */
+    {
+        char firstChar = '\0';
+
+        if (len > 0) {
+            firstChar = str[0];
+        }
+
+        /* Move the existing string down to make room for the new string. */
+        C89STR_MOVE_MEMORY(str + otherLen, str, len + 1);   /* +1 for the null terminator. */
+
+        /* Format the new string straight into the buffer. */
+        c89str_vsprintf_internal(pAllocationCallbacks, str, pFormat, args);
+
+        /* Restore the first character of the existing string. */
+        if (len > 0) {
+            str[otherLen] = firstChar;
+        }
+    }
+
+    /* The length needs to be set explicitly. The null terminator has already been dealt with. */
+    c89str_set_len(str, otherLen + len);
+
+    /* We're done. */
+    *pStr = str;
+    return C89STR_SUCCESS;
+}
+
+C89STR_API errno_t c89str_prependf(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...)
+{
+    errno_t result;
+    va_list args;
+
+    if (pStr == NULL || pFormat == NULL) {
+        return EINVAL;
+    }
+
+    va_start(args, pFormat);
+    {
+        result = c89str_prependv(pStr, pAllocationCallbacks, pFormat, args);
     }
     va_end(args);
 
