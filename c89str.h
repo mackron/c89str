@@ -1304,71 +1304,6 @@ C89STR_API errno_t c89str_to_int(const char* str, size_t len, int* pValue)
 
 
 
-static int c89str_vscprintf_internal(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args)
-{
-#if defined(_MSC_VER)
-    #if _MSC_VER > 1200
-        C89STR_UNUSED(pAllocationCallbacks);
-        return _vscprintf(pFormat, args);
-    #else
-        /*
-        We need to emulate _vscprintf() for the VC6 build. This can be made more efficient, but since it's only VC6 I'm happy to keep this simple. In the VC6
-        build we can implement this in terms of _vsnprintf().
-        */
-        int result;
-        char* pTempBuffer = NULL;
-        size_t tempBufferCap = 1024;
-
-        if (pFormat == NULL) {
-            errno = EINVAL;
-            return -1;
-        }
-
-	    for (;;) {
-            char* pNewTempBuffer = (char*)c89str_realloc(pTempBuffer, tempBufferCap, pAllocationCallbacks);
-            if (pNewTempBuffer == NULL) {
-                c89str_free(pTempBuffer, pAllocationCallbacks);
-                errno = ENOMEM;
-                return -1;  /* Out of memory. */
-            }
-
-            pTempBuffer = pNewTempBuffer;
-
-            result = _vsnprintf(pTempBuffer, tempBufferCap, pFormat, args);
-            c89str_free(pTempBuffer, pAllocationCallbacks);
-        
-            if (result != -1) {
-                break;  /* Got it. */
-            }
-
-            /* Buffer wasn't big enough. Ideally it'd be nice to use an error code to know the reason for sure, but this is reliable enough. */
-            tempBufferCap *= 2;
-	    }
-
-        return result;
-    #endif
-#else
-    C89STR_UNUSED(pAllocationCallbacks);
-    return vsnprintf(NULL, 0, pFormat, args);
-#endif
-}
-
-static int c89str_vsprintf_internal(const c89str_allocation_callbacks* pAllocationCallbacks, char* pOutput, const char* pFormat, va_list args)
-{
-    /* WARNING: This should only be used by first measuring the output string by setting pOutput to NULL. */
-
-    if (pOutput == NULL) {
-        return c89str_vscprintf_internal(pAllocationCallbacks, pFormat, args);
-    } else {
-    #if (!defined(_MSC_VER) || _MSC_VER >= 1900) && !defined(__STRICT_ANSI__)
-        return vsnprintf(pOutput, (size_t)-1, pFormat, args);   /* We're lying about the length here. We should only be calling this internally, and only when computing the length beforehand, so it should be safe. */
-    #else
-        return vsprintf(pOutput, pFormat, args);
-    #endif
-    }
-}
-
-
 #define C89STR_HEADER_SIZE_IN_BYTES     (sizeof(size_t) + sizeof(size_t))
 
 static size_t c89str_allocation_size(size_t cap)
@@ -1562,7 +1497,7 @@ C89STR_API errno_t c89str_setv(c89str* pStr, const c89str_allocation_callbacks* 
     args2 = args;
 #endif
 
-    len = c89str_vsprintf_internal(pAllocationCallbacks, NULL, pFormat, args2);
+    len = c89str_vsprintf(NULL, pFormat, args2);
     if (len < 0) {
         return errno;  /* Error occurred with formatting. */
     }
@@ -1577,7 +1512,7 @@ C89STR_API errno_t c89str_setv(c89str* pStr, const c89str_allocation_callbacks* 
     }
 
     /* We have enough room in the string so now we can just format straight into it. */
-    c89str_vsprintf_internal(pAllocationCallbacks, str, pFormat, args);
+    c89str_vsprintf(str, pFormat, args);
 
     /* The length needs to be set explicitly. The formatting will have written the null terminator. */
     c89str_set_len(str, len);
@@ -1671,7 +1606,7 @@ C89STR_API errno_t c89str_catv(c89str* pStr, const c89str_allocation_callbacks* 
     args2 = args;
 #endif
 
-    otherLen = c89str_vsprintf_internal(pAllocationCallbacks, NULL, pFormat, args2);
+    otherLen = c89str_vsprintf(NULL, pFormat, args2);
     if (otherLen < 0) {
         return errno;  /* Error occurred with formatting. */
     }
@@ -1692,7 +1627,7 @@ C89STR_API errno_t c89str_catv(c89str* pStr, const c89str_allocation_callbacks* 
     }
 
     /* We have enough room in the string so now we can just format straight into it. */
-    c89str_vsprintf_internal(pAllocationCallbacks, str + len, pFormat, args);
+    c89str_vsprintf(str + len, pFormat, args);
 
     /* The length needs to be set explicitly. The formatting will have written the null terminator. */
     c89str_set_len(str, len + otherLen);
@@ -1786,7 +1721,7 @@ C89STR_API errno_t c89str_prependv(c89str* pStr, const c89str_allocation_callbac
     args2 = args;
 #endif
 
-    otherLen = c89str_vsprintf_internal(pAllocationCallbacks, NULL, pFormat, args2);
+    otherLen = c89str_vsprintf(NULL, pFormat, args2);
     if (otherLen < 0) {
         return errno;  /* Error occurred with formatting. */
     }
@@ -1831,7 +1766,7 @@ C89STR_API errno_t c89str_prependv(c89str* pStr, const c89str_allocation_callbac
         C89STR_MOVE_MEMORY(str + otherLen, str, len + 1);   /* +1 for the null terminator. */
 
         /* Format the new string straight into the buffer. */
-        c89str_vsprintf_internal(pAllocationCallbacks, str, pFormat, args);
+        c89str_vsprintf(str, pFormat, args);
 
         /* Restore the first character of the existing string. */
         if (len > 0) {
