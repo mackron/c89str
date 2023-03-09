@@ -36,7 +36,7 @@ compatibility between different compilers.
 #include <stdarg.h> /* For va_list */
 #include <errno.h>  /* For errno_t */
 
-#if defined(__EMSCRIPTEN__)
+#if !defined(_WIN32)
 typedef int errno_t;
 #endif
 
