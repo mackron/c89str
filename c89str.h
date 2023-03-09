@@ -1497,7 +1497,7 @@ C89STR_API errno_t c89str_setv(c89str* pStr, const c89str_allocation_callbacks* 
     args2 = args;
 #endif
 
-    len = c89str_vsprintf(NULL, pFormat, args2);
+    len = c89str_vsnprintf(NULL, 0, pFormat, args2);
     if (len < 0) {
         return errno;  /* Error occurred with formatting. */
     }
@@ -1512,7 +1512,7 @@ C89STR_API errno_t c89str_setv(c89str* pStr, const c89str_allocation_callbacks* 
     }
 
     /* We have enough room in the string so now we can just format straight into it. */
-    c89str_vsprintf(str, pFormat, args);
+    c89str_vsnprintf(str, len+1, pFormat, args);
 
     /* The length needs to be set explicitly. The formatting will have written the null terminator. */
     c89str_set_len(str, len);
@@ -1606,7 +1606,7 @@ C89STR_API errno_t c89str_catv(c89str* pStr, const c89str_allocation_callbacks* 
     args2 = args;
 #endif
 
-    otherLen = c89str_vsprintf(NULL, pFormat, args2);
+    otherLen = c89str_vsnprintf(NULL, 0, pFormat, args2);
     if (otherLen < 0) {
         return errno;  /* Error occurred with formatting. */
     }
@@ -1627,7 +1627,7 @@ C89STR_API errno_t c89str_catv(c89str* pStr, const c89str_allocation_callbacks* 
     }
 
     /* We have enough room in the string so now we can just format straight into it. */
-    c89str_vsprintf(str + len, pFormat, args);
+    c89str_vsnprintf(str + len, otherLen+1, pFormat, args);
 
     /* The length needs to be set explicitly. The formatting will have written the null terminator. */
     c89str_set_len(str, len + otherLen);
@@ -1721,7 +1721,7 @@ C89STR_API errno_t c89str_prependv(c89str* pStr, const c89str_allocation_callbac
     args2 = args;
 #endif
 
-    otherLen = c89str_vsprintf(NULL, pFormat, args2);
+    otherLen = c89str_vsnprintf(NULL, 0, pFormat, args2);
     if (otherLen < 0) {
         return errno;  /* Error occurred with formatting. */
     }
@@ -1766,7 +1766,7 @@ C89STR_API errno_t c89str_prependv(c89str* pStr, const c89str_allocation_callbac
         C89STR_MOVE_MEMORY(str + otherLen, str, len + 1);   /* +1 for the null terminator. */
 
         /* Format the new string straight into the buffer. */
-        c89str_vsprintf(str, pFormat, args);
+        c89str_vsnprintf(str, len+1, pFormat, args);
 
         /* Restore the first character of the existing string. */
         if (len > 0) {
