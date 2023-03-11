@@ -6202,6 +6202,12 @@ logic in stb_sprintf() which we might be able to do via the amalgamator.
 #define C89STR_SPRINTF_NOUNALIGNED
 #endif
 
+/* We need to disable the implicit-fallthrough warning on GCC. */
+#if defined(__GNUC__) && (__GNUC__ >= 7 || (__GNUC__ == 6 && __GNUC_MINOR__ >= 1))
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
+
 /* beg stb_sprintf.c */
 #if defined(__clang__)
  #if defined(__has_feature) && defined(__has_attribute)
@@ -7856,6 +7862,10 @@ static c89str_int32 c89str_real_to_str(char const* *start, c89str_uint32 *len, c
 
 #undef C89STR_UNALIGNED
 /* end stb_sprintf.c */
+
+#if defined(__GNUC__) && (__GNUC__ >= 7 || (__GNUC__ == 6 && __GNUC_MINOR__ >= 1))
+    #pragma GCC diagnostic pop
+#endif
 
 
 
