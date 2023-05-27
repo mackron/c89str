@@ -1435,7 +1435,7 @@ C89STR_API c89str c89str_newf(const c89str_allocation_callbacks* pAllocationCall
 
 C89STR_API c89str c89str_set(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther)
 {
-    return c89str_setn(str, pAllocationCallbacks, pOther, c89str_strlen(pOther));
+    return c89str_setn(str, pAllocationCallbacks, pOther, (size_t)-1);
 }
 
 C89STR_API c89str c89str_setn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen)
@@ -1540,7 +1540,7 @@ C89STR_API c89str c89str_setf(c89str str, const c89str_allocation_callbacks* pAl
 
 C89STR_API c89str c89str_cat(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther)
 {
-    return c89str_catn(str, pAllocationCallbacks, pOther, c89str_strlen(pOther));
+    return c89str_catn(str, pAllocationCallbacks, pOther, (size_t)-1);
 }
 
 C89STR_API c89str c89str_catn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen)
@@ -1666,7 +1666,7 @@ C89STR_API c89str c89str_catf(c89str str, const c89str_allocation_callbacks* pAl
 
 C89STR_API c89str c89str_prepend(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther)
 {
-    return c89str_prependn(str, pAllocationCallbacks, pOther, c89str_strlen(pOther));
+    return c89str_prependn(str, pAllocationCallbacks, pOther, (size_t)-1);
 }
 
 C89STR_API c89str c89str_prependn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen)
