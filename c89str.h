@@ -7384,16 +7384,16 @@ C89STR_API_SPRINTF_DEF int c89str_sprintf(char* buf, char const* fmt, ...)
    return result;
 }
 
-typedef struct c89str_context {
+typedef struct c89str_sprintf_context {
    char* buf;
    size_t count;
    size_t length;
    char tmp[C89STR_SPRINTF_MIN];
-} c89str_context;
+} c89str_sprintf_context;
 
 static char* c89str_clamp_callback(const char* buf, void* user, size_t len)
 {
-   c89str_context *c = (c89str_context *)user;
+   c89str_sprintf_context *c = (c89str_sprintf_context *)user;
    c->length += len;
 
    if (len > c->count)
@@ -7421,7 +7421,7 @@ static char* c89str_clamp_callback(const char* buf, void* user, size_t len)
 
 static char*  c89str_count_clamp_callback( const char*  buf, void*  user, size_t len )
 {
-   c89str_context * c = (c89str_context*)user;
+   c89str_sprintf_context * c = (c89str_sprintf_context*)user;
    (void) sizeof(buf);
 
    c->length += len;
@@ -7430,7 +7430,7 @@ static char*  c89str_count_clamp_callback( const char*  buf, void*  user, size_t
 
 C89STR_API_SPRINTF_DEF int c89str_vsnprintf( char*  buf, size_t count, char const*  fmt, va_list va )
 {
-   c89str_context c;
+   c89str_sprintf_context c;
 
    if ( (count == 0) && !buf )
    {

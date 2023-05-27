@@ -445,6 +445,13 @@ int main(int argc, char** argv)
     stbImplSectionClean = c89str_replace(stbImplSectionClean, NULL, blockBeg, blockEnd - blockBeg, "", 0);
 
 
+    /*
+    There is a data type called stbsp__context which after renaming for namespacing will be named c89str_context which
+    just too generic. This needs to be renamed to stbsp__sprintf_context before we can do the renaming.
+    */
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "stbsp__context", (size_t)-1, "stbsp__sprintf_context", (size_t)-1);
+
+
     /* Now we can do some mass renaming of namespaces. */
     replace_stbsp_namespaces(&stbHeadSectionClean);
     replace_stbsp_namespaces(&stbImplSectionClean);
