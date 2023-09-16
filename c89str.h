@@ -295,7 +295,7 @@ C89STR_API c89str  c89str_new_with_cap(const c89str_allocation_callbacks* pAlloc
 C89STR_API c89str  c89str_new(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
 C89STR_API c89str  c89str_newn(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
 C89STR_API c89str  c89str_newv(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
-C89STR_API c89str  c89str_newf(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
+C89STR_API c89str  c89str_newf(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(2, 3);
 C89STR_API c89str  c89str_set(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
 C89STR_API c89str  c89str_setn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
 C89STR_API c89str  c89str_setv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
