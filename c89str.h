@@ -172,6 +172,8 @@ C89STR_API c89str_bool32 c89str_begins_with(const char* str1, size_t str1Len, co
 C89STR_API c89str_bool32 c89str_ends_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 ends with str2. */
 C89STR_API errno_t c89str_to_uint(const char* str, size_t strLen, unsigned int* pValue);
 C89STR_API errno_t c89str_to_int(const char* str, size_t strLen, int* pValue);
+C89STR_API errno_t c89str_ascii_tolower(char* dst, size_t dstCap, const char* src, size_t srcLen);
+C89STR_API errno_t c89str_ascii_toupper(char* dst, size_t dstCap, const char* src, size_t srcLen);
 
 
 /* Unicode API */
@@ -288,29 +290,31 @@ C89STR_API size_t c89str_utf8_next_line(const c89str_utf8* pUTF8, size_t utf8Len
 
 /* Dynamic String API */
 typedef char* c89str;
-C89STR_API void   c89str_delete(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks);
-C89STR_API c89str c89str_new(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
-C89STR_API c89str c89str_newn(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
-C89STR_API c89str c89str_newv(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
-C89STR_API c89str c89str_newf(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
-C89STR_API c89str c89str_set(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
-C89STR_API c89str c89str_setn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
-C89STR_API c89str c89str_setv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
-C89STR_API c89str c89str_setf(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
-C89STR_API c89str c89str_cat(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
-C89STR_API c89str c89str_catn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
-C89STR_API c89str c89str_catv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
-C89STR_API c89str c89str_catf(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
-C89STR_API c89str c89str_prepend(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
-C89STR_API c89str c89str_prependn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
-C89STR_API c89str c89str_prependv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
-C89STR_API c89str c89str_prependf(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
-C89STR_API c89str c89str_remove(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, size_t beg, size_t end);
-C89STR_API c89str c89str_replace(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, size_t replaceOffset, size_t replaceLength, const char* pOther, size_t otherLength);
-C89STR_API c89str c89str_replace_all(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pQuery, size_t queryLen, const char* pReplacement, size_t replacementLen);
-C89STR_API c89str c89str_trim(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks);
-C89STR_API size_t c89str_len(const c89str str);
-C89STR_API size_t c89str_cap(const c89str str);
+C89STR_API void    c89str_delete(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks);
+C89STR_API c89str  c89str_new_with_cap(const c89str_allocation_callbacks* pAllocationCallbacks, size_t capacityNotIncludingNullTerminator);
+C89STR_API c89str  c89str_new(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
+C89STR_API c89str  c89str_newn(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
+C89STR_API c89str  c89str_newv(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
+C89STR_API c89str  c89str_newf(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
+C89STR_API c89str  c89str_set(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
+C89STR_API c89str  c89str_setn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
+C89STR_API c89str  c89str_setv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
+C89STR_API c89str  c89str_setf(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
+C89STR_API c89str  c89str_cat(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
+C89STR_API c89str  c89str_catn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
+C89STR_API c89str  c89str_catv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
+C89STR_API c89str  c89str_catf(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
+C89STR_API c89str  c89str_prepend(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther);
+C89STR_API c89str  c89str_prependn(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther, size_t otherLen);
+C89STR_API c89str  c89str_prependv(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, va_list args);
+C89STR_API c89str  c89str_prependf(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pFormat, ...) C89STR_ATTRIBUTE_FORMAT(3, 4);
+C89STR_API c89str  c89str_remove(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, size_t beg, size_t end);
+C89STR_API c89str  c89str_replace(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, size_t replaceOffset, size_t replaceLength, const char* pOther, size_t otherLength);
+C89STR_API c89str  c89str_replace_all(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pQuery, size_t queryLen, const char* pReplacement, size_t replacementLen);
+C89STR_API c89str  c89str_trim(c89str str, const c89str_allocation_callbacks* pAllocationCallbacks);
+C89STR_API void    c89str_set_len(c89str str, size_t len);  /* Do not call this manually unless you're manually changing the content of the string. */
+C89STR_API size_t  c89str_len(const c89str str);
+C89STR_API size_t  c89str_cap(const c89str str);
 C89STR_API errno_t c89str_result(const c89str str);
 
 
@@ -1303,6 +1307,70 @@ C89STR_API errno_t c89str_to_int(const char* str, size_t len, int* pValue)
     return C89STR_SUCCESS;
 }
 
+C89STR_API errno_t c89str_ascii_tolower(char* dst, size_t dstCap, const char* src, size_t srcLen)
+{
+    if (dst == NULL || src == NULL) {
+        return EINVAL;
+    }
+
+    if (dstCap == 0) {
+        return ERANGE;
+    }
+
+    while (srcLen > 0 && src[0] != '\0') {
+        if (dstCap == 1) {
+            return ERANGE;
+        }
+
+        if (src[0] >= 'A' && src[0] <= 'Z') {
+            dst[0] = src[0] - 'A' + 'a';
+        } else {
+            dst[0] = src[0];
+        }
+
+        dst += 1;
+        dstCap -= 1;
+        src += 1;
+        srcLen -= 1;
+    }
+
+    dst[0] = '\0';
+    
+    return C89STR_SUCCESS;
+}
+
+C89STR_API errno_t c89str_ascii_toupper(char* dst, size_t dstCap, const char* src, size_t srcLen)
+{
+    if (dst == NULL || src == NULL) {
+        return EINVAL;
+    }
+
+    if (dstCap == 0) {
+        return ERANGE;
+    }
+
+    while (srcLen > 0 && src[0] != '\0') {
+        if (dstCap == 1) {
+            return ERANGE;
+        }
+
+        if (src[0] >= 'a' && src[0] <= 'z') {
+            dst[0] = src[0] - 'a' + 'A';
+        } else {
+            dst[0] = src[0];
+        }
+
+        dst += 1;
+        dstCap -= 1;
+        src += 1;
+        srcLen -= 1;
+    }
+
+    dst[0] = '\0';
+    
+    return C89STR_SUCCESS;
+}
+
 
 
 #define C89STR_HEADER_SIZE_IN_BYTES     (sizeof(size_t) + sizeof(size_t) + sizeof(size_t)) /* cap, len, result. Result is typed as size_t here for alignment reasons. */
@@ -1330,11 +1398,6 @@ static void c89str_set_cap(c89str str, size_t cap)
 static size_t c89str_get_cap(const c89str str)
 {
     return ((size_t*)c89str_to_allocation_address(str))[0];
-}
-
-static void c89str_set_len(c89str str, size_t len)
-{
-    ((size_t*)c89str_to_allocation_address(str))[1] = len;
 }
 
 static size_t c89str_get_len(const c89str str)
@@ -1400,6 +1463,19 @@ C89STR_API void c89str_delete(c89str str, const c89str_allocation_callbacks* pAl
     }
 
     c89str_free(c89str_to_allocation_address(str), pAllocationCallbacks);
+}
+
+C89STR_API c89str c89str_new_with_cap(const c89str_allocation_callbacks* pAllocationCallbacks, size_t capacityNotIncludingNullTerminator)
+{
+    c89str str = c89str_realloc_string(NULL, capacityNotIncludingNullTerminator, pAllocationCallbacks);
+    if (str == NULL) {
+        return NULL;    /* Failed */
+    }
+
+    c89str_set_len(str, 0);
+    str[0] = '\0';
+
+    return str;
 }
 
 C89STR_API c89str c89str_new(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pOther)
@@ -1875,10 +1951,6 @@ static c89str c89str_replace_ex(c89str str, const c89str_allocation_callbacks* p
         return str;
     }
 
-    if (replaceLen == 0) {
-        return str; /* Nothing to replace. */
-    }
-
     /* We can allow pOther to be NULL in which case it can be the same as a remove. */
     if (pOther == NULL) {
         pOther = "";
@@ -2016,6 +2088,15 @@ C89STR_API c89str c89str_trim(c89str str, const c89str_allocation_callbacks* pAl
     return str;
 }
 
+
+C89STR_API void c89str_set_len(c89str str, size_t len)
+{
+    if (str == NULL) {
+        return;
+    }
+
+    ((size_t*)c89str_to_allocation_address(str))[1] = len;
+}
 
 C89STR_API size_t c89str_len(const c89str str)
 {
