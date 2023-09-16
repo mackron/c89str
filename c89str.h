@@ -436,7 +436,7 @@ C89STR_API void c89str_set_sprintf_separators(char comma, char period);
 #ifndef c89str_c
 #define c89str_c
 
-#if defined(__has_c_attribute)
+#if defined(__has_c_attribute) && defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202000L)
     #if __has_c_attribute(fallthrough)
         #define C89STR_FALLTHROUGH [[fallthrough]]
     #endif
