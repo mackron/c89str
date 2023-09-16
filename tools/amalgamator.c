@@ -52,7 +52,7 @@ c89str c89str_open_and_read_text_file(const char* pFilePath)
     fread(pFileContents, 1, fileSize, pFile);
     fclose(pFile);
 
-    c89str_newn(&str, NULL, pFileContents, fileSize);
+    str = c89str_newn(NULL, pFileContents, fileSize);
     
     c89str_free(pFileContents, NULL);
 
@@ -124,7 +124,8 @@ C89STR_API errno_t c89str_new_substr_tagged(c89str* pStr, const c89str_allocatio
         return ENOENT;
     }
 
-    return c89str_newn(pStr, pAllocationCallbacks, pOther, len);
+    *pStr = c89str_newn(pAllocationCallbacks, pOther, len);
+    return c89str_result(*pStr);
 }
 
 C89STR_API errno_t c89str_replace_range_tagged(c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks, const char* pTagBeg, const char* pTagEnd, const char* pOther, const char* pOtherTagBeg, const char* pOtherTagEnd, c89str_bool32 keepTagsOnSeparateLines)
@@ -175,39 +176,39 @@ C89STR_API errno_t c89str_replace_range_tagged(c89str* pStr, const c89str_alloca
         pOtherNewLines = "\n";
     }
 
-    return c89str_replace_ex(pStr, pAllocationCallbacks, strOffsetBeg, strOffsetEnd - strOffsetBeg, pOtherSubstr, otherSubstrLen, pOtherNewLines, pOtherNewLines);
+    *pStr = c89str_replace_ex(*pStr, pAllocationCallbacks, strOffsetBeg, strOffsetEnd - strOffsetBeg, pOtherSubstr, otherSubstrLen, pOtherNewLines, pOtherNewLines);
+    return c89str_result(*pStr);
 }
 
 
 
 void replace_stbsp_namespaces(c89str* pStr)
 {
-    c89str_replace_all(pStr, NULL, "STBSP__", (size_t)-1, "C89STR_", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "STBSP_",  (size_t)-1, "C89STR_", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "STB_",    (size_t)-1, "C89STR_", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "STBSP__", (size_t)-1, "C89STR_", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "STBSP_",  (size_t)-1, "C89STR_", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "STB_",    (size_t)-1, "C89STR_", (size_t)-1);
 
-    c89str_replace_all(pStr, NULL, "stbsp__", (size_t)-1, "c89str_", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "stbsp_",  (size_t)-1, "c89str_", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "stb_",    (size_t)-1, "c89str_", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "stbsp__", (size_t)-1, "c89str_", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "stbsp_",  (size_t)-1, "c89str_", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "stb_",    (size_t)-1, "c89str_", (size_t)-1);
 }
 
 void style_cleanup(c89str* pStr)
 {
-    c89str_replace_all(pStr, NULL, "void *", (size_t)-1, "void* ", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "char *", (size_t)-1, "char* ", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "char const *", (size_t)-1, "char const* ", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "C89STR_SPRINTFCB *", (size_t)-1, "C89STR_SPRINTFCB* ", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "void *", (size_t)-1, "void* ", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "char *", (size_t)-1, "char* ", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "char const *", (size_t)-1, "char const* ", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "C89STR_SPRINTFCB *", (size_t)-1, "C89STR_SPRINTFCB* ", (size_t)-1);
 
-    c89str_replace_all(pStr, NULL, "C89STR_ATTRIBUTE_FORMAT(2,3)", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT(2, 3)", (size_t)-1);
-    c89str_replace_all(pStr, NULL, "C89STR_ATTRIBUTE_FORMAT(3,4)", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT(3, 4)", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "C89STR_ATTRIBUTE_FORMAT(2,3)", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT(2, 3)", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "C89STR_ATTRIBUTE_FORMAT(3,4)", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT(3, 4)", (size_t)-1);
 
-    c89str_replace_all(pStr, NULL, "C89STR_SPRINTFCB", (size_t)-1, "c89str_sprintf_callback", (size_t)-1);
+    *pStr = c89str_replace_all(*pStr, NULL, "C89STR_SPRINTFCB", (size_t)-1, "c89str_sprintf_callback", (size_t)-1);
 }
 
 void remove_comments(c89str* pStr)
 {
-    c89str newStr;
-    c89str_new(&newStr, NULL, NULL);
+    c89str newStr = c89str_new(NULL, NULL);
 
     /* To remove comments I'm just going to use the lexer. The lexer provides us enough information that we can recreate the code. */
     c89str_lexer lexer;
@@ -217,7 +218,7 @@ void remove_comments(c89str* pStr)
             continue;   /* Skip over comments. */
         }
 
-        c89str_catn(&newStr, NULL, lexer.pTokenStr, lexer.tokenLen);
+        newStr = c89str_catn(newStr, NULL, lexer.pTokenStr, lexer.tokenLen);
     }
 
     *pStr = newStr;
@@ -280,18 +281,15 @@ int main(int argc, char** argv)
         * Comments can be stripped out since they're not readable, but also because it uses line comments which break some supported targets of c89str.
         * Everything needs to be namespaced with "c89str_".
     */
-    c89str stbHeadSectionClean;
-    c89str_new(&stbHeadSectionClean, NULL, stbHeadSection);
+    c89str stbHeadSectionClean = c89str_new(NULL, stbHeadSection);
+    c89str stbImplSectionClean = c89str_new(NULL, stbImplSection);
 
-    c89str stbImplSectionClean;
-    c89str_new(&stbImplSectionClean, NULL, stbImplSection);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "#ifndef STB_SPRINTF_H_INCLUDE",   (size_t)-1, "", 0);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "#define STB_SPRINTF_H_INCLUDE",   (size_t)-1, "", 0);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "#endif // STB_SPRINTF_H_INCLUDE", (size_t)-1, "", 0);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "#ifndef STB_SPRINTF_H_INCLUDE",   (size_t)-1, "", 0);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "#define STB_SPRINTF_H_INCLUDE",   (size_t)-1, "", 0);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "#endif // STB_SPRINTF_H_INCLUDE", (size_t)-1, "", 0);
-
-    c89str_replace_all(&stbImplSectionClean, NULL, "#ifdef STB_SPRINTF_IMPLEMENTATION",    (size_t)-1, "", 0);
-    c89str_replace_all(&stbImplSectionClean, NULL, "#endif // STB_SPRINTF_IMPLEMENTATION", (size_t)-1, "", 0);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "#ifdef STB_SPRINTF_IMPLEMENTATION",    (size_t)-1, "", 0);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "#endif // STB_SPRINTF_IMPLEMENTATION", (size_t)-1, "", 0);
 
     /*
     A big chunk of the header section can be removed because we have the equivalent in c89str. It's the part
@@ -321,7 +319,7 @@ int main(int argc, char** argv)
         "#define C89STR_API_SPRINTF_DEF C89STR_API C89STR_ASAN\n"
         "#endif\n\n";
 
-    c89str_replace(&stbHeadSectionClean, NULL, blockBeg, blockEnd - blockBeg, pReplacement, (size_t)-1);
+    stbHeadSectionClean = c89str_replace(stbHeadSectionClean, NULL, blockBeg, blockEnd - blockBeg, pReplacement, (size_t)-1);
 
 
 
@@ -339,53 +337,52 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    c89str_replace(&stbHeadSectionClean, NULL, blockBeg, blockEnd - blockBeg, "", (size_t)-1);
+    stbHeadSectionClean = c89str_replace(stbHeadSectionClean, NULL, blockBeg, blockEnd - blockBeg, "", (size_t)-1);
 
 
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STBSP__PUBLICDEC", (size_t)-1, "C89STR_API", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STBSP__PUBLICDEC", (size_t)-1, "C89STR_API", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STBSP__PUBLICDEC", (size_t)-1, "C89STR_API", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STBSP__PUBLICDEC", (size_t)-1, "C89STR_API", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STBSP__PUBLICDEF", (size_t)-1, "C89STR_API_SPRINTF_DEF", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STBSP__PUBLICDEF", (size_t)-1, "C89STR_API_SPRINTF_DEF", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STBSP__PUBLICDEF", (size_t)-1, "C89STR_API_SPRINTF_DEF", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STBSP__PUBLICDEF", (size_t)-1, "C89STR_API_SPRINTF_DEF", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STBSP__ATTRIBUTE_FORMAT", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STBSP__ATTRIBUTE_FORMAT", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STBSP__ATTRIBUTE_FORMAT", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STBSP__ATTRIBUTE_FORMAT", (size_t)-1, "C89STR_ATTRIBUTE_FORMAT", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STBSP__NOTUSED", (size_t)-1, "C89STR_UNUSED", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STBSP__NOTUSED", (size_t)-1, "C89STR_UNUSED", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STBSP__NOTUSED", (size_t)-1, "C89STR_UNUSED", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STBSP__NOTUSED", (size_t)-1, "C89STR_UNUSED", (size_t)-1);
 
 
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintf)", (size_t)-1, "c89str_vsprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintf)", (size_t)-1, "c89str_vsprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintf )", (size_t)-1, "c89str_vsprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintf )", (size_t)-1, "c89str_vsprintf", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintf)", (size_t)-1, "c89str_vsprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintf)", (size_t)-1, "c89str_vsprintf", (size_t)-1);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintf )", (size_t)-1, "c89str_vsprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintf )", (size_t)-1, "c89str_vsprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(vsnprintf)", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(vsnprintf)", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( vsnprintf )", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( vsnprintf )", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(vsnprintf)", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(vsnprintf)", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( vsnprintf )", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( vsnprintf )", (size_t)-1, "c89str_vsnprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(sprintf)", (size_t)-1, "c89str_sprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(sprintf)", (size_t)-1, "c89str_sprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( sprintf )", (size_t)-1, "c89str_sprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( sprintf )", (size_t)-1, "c89str_sprintf", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(sprintf)", (size_t)-1, "c89str_sprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(sprintf)", (size_t)-1, "c89str_sprintf", (size_t)-1);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( sprintf )", (size_t)-1, "c89str_sprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( sprintf )", (size_t)-1, "c89str_sprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(snprintf)", (size_t)-1, "c89str_snprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(snprintf)", (size_t)-1, "c89str_snprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( snprintf )", (size_t)-1, "c89str_snprintf", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( snprintf )", (size_t)-1, "c89str_snprintf", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(snprintf)", (size_t)-1, "c89str_snprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(snprintf)", (size_t)-1, "c89str_snprintf", (size_t)-1);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( snprintf )", (size_t)-1, "c89str_snprintf", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( snprintf )", (size_t)-1, "c89str_snprintf", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintfcb)", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintfcb)", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintfcb )", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintfcb )", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
 
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintfcb)", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(vsprintfcb)", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintfcb )", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( vsprintfcb )", (size_t)-1, "c89str_vsprintfcb", (size_t)-1);
-
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(set_separators)", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(set_separators)", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
-    c89str_replace_all(&stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( set_separators )", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
-    c89str_replace_all(&stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( set_separators )", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE(set_separators)", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE(set_separators)", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
+    stbHeadSectionClean = c89str_replace_all(stbHeadSectionClean, NULL, "STB_SPRINTF_DECORATE( set_separators )", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "STB_SPRINTF_DECORATE( set_separators )", (size_t)-1, "c89str_set_sprintf_separators", (size_t)-1);
     
 
 
@@ -404,11 +401,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    c89str sectionToMoveFromHeadToImpl = NULL;
-    c89str_newn(&sectionToMoveFromHeadToImpl, NULL, stbHeadSectionClean + blockBeg, blockEnd - blockBeg);
+    c89str sectionToMoveFromHeadToImpl = c89str_newn(NULL, stbHeadSectionClean + blockBeg, blockEnd - blockBeg);
+    
 
     /* We have a copy of the text in preparation for moving. We can now delete it from the header. */
-    c89str_remove(&stbHeadSectionClean, NULL, blockBeg, blockEnd);
+    stbHeadSectionClean = c89str_remove(stbHeadSectionClean, NULL, blockBeg, blockEnd);
 
     /*
     Now we need to insert this into the top of the implementation section. Already at the top of the implementation
@@ -426,8 +423,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    c89str_cat(&sectionToMoveFromHeadToImpl, NULL, "\n");
-    c89str_replace(&stbImplSectionClean, NULL, blockBeg, blockEnd - blockBeg, sectionToMoveFromHeadToImpl, (size_t)-1);
+    sectionToMoveFromHeadToImpl = c89str_cat(sectionToMoveFromHeadToImpl, NULL, "\n");
+    stbImplSectionClean = c89str_replace(stbImplSectionClean, NULL, blockBeg, blockEnd - blockBeg, sectionToMoveFromHeadToImpl, (size_t)-1);
 
 
     /*
@@ -445,7 +442,14 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    c89str_replace(&stbImplSectionClean, NULL, blockBeg, blockEnd - blockBeg, "", 0);
+    stbImplSectionClean = c89str_replace(stbImplSectionClean, NULL, blockBeg, blockEnd - blockBeg, "", 0);
+
+
+    /*
+    There is a data type called stbsp__context which after renaming for namespacing will be named c89str_context which
+    just too generic. This needs to be renamed to stbsp__sprintf_context before we can do the renaming.
+    */
+    stbImplSectionClean = c89str_replace_all(stbImplSectionClean, NULL, "stbsp__context", (size_t)-1, "stbsp__sprintf_context", (size_t)-1);
 
 
     /* Now we can do some mass renaming of namespaces. */
@@ -461,14 +465,13 @@ int main(int argc, char** argv)
     style_cleanup(&stbImplSectionClean);
 
     /* Now just trim our sections just to clean them up. */
-    c89str_trim(&stbHeadSectionClean, NULL);
-    c89str_trim(&stbImplSectionClean, NULL);
+    stbHeadSectionClean = c89str_trim(stbHeadSectionClean, NULL);
+    stbImplSectionClean = c89str_trim(stbImplSectionClean, NULL);
 
 
 
     /* We now need to replace the relevant sections in c89str.h. */
-    c89str c89strNewFileContent;
-    c89str_new(&c89strNewFileContent, NULL, c89strFileContent);
+    c89str c89strNewFileContent = c89str_new(NULL, c89strFileContent);
     c89str_replace_range_tagged(&c89strNewFileContent, NULL, "/* beg stb_sprintf.h */", "/* end stb_sprintf.h */", stbHeadSectionClean, NULL, NULL, C89STR_TRUE);
     c89str_replace_range_tagged(&c89strNewFileContent, NULL, "/* beg stb_sprintf.c */", "/* end stb_sprintf.c */", stbImplSectionClean, NULL, NULL, C89STR_TRUE);
 
