@@ -174,6 +174,7 @@ C89STR_API errno_t c89str_to_uint(const char* str, size_t strLen, unsigned int* 
 C89STR_API errno_t c89str_to_int(const char* str, size_t strLen, int* pValue);
 C89STR_API errno_t c89str_ascii_tolower(char* dst, size_t dstCap, const char* src, size_t srcLen);
 C89STR_API errno_t c89str_ascii_toupper(char* dst, size_t dstCap, const char* src, size_t srcLen);
+C89STR_API c89str_bool32 c89str_is_all_digits(const char* str, size_t strLen);
 
 
 /* Unicode API */
@@ -1369,6 +1370,24 @@ C89STR_API errno_t c89str_ascii_toupper(char* dst, size_t dstCap, const char* sr
     dst[0] = '\0';
     
     return C89STR_SUCCESS;
+}
+
+C89STR_API c89str_bool32 c89str_is_all_digits(const char* str, size_t strLen)
+{
+    if (str == NULL) {
+        return C89STR_FALSE;
+    }
+
+    while (strLen > 0 && str[0] != '\0') {
+        if (str[0] < '0' || str[0] > '9') {
+            return C89STR_FALSE;
+        }
+
+        str += 1;
+        strLen -= 1;
+    }
+
+    return C89STR_TRUE;
 }
 
 
