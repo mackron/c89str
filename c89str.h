@@ -4596,7 +4596,7 @@ C89STR_API errno_t c89str_utf32_to_utf8(c89str_utf8* pUTF8, size_t utf8Cap, size
     }
 
     /* Getting here means there was no BOM, so assume native endian. */
-    return c89str_utf32ne_to_utf8(pUTF8, utf8Cap, pUTF8Len, pUTF32+1, utf32Len-1, pUTF32LenProcessed, flags);
+    return c89str_utf32ne_to_utf8(pUTF8, utf8Cap, pUTF8Len, pUTF32, utf32Len, pUTF32LenProcessed, flags);
 }
 
 
