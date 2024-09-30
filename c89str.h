@@ -500,7 +500,7 @@ static void c89str_zero_memory_default(void* p, size_t sz)
 #define C89STR_MIN(x, y)                    (((x) < (y)) ? (x) : (y))
 
 
-static C89STR_INLINE c89str_bool32 c89str_is_little_endian()
+static C89STR_INLINE c89str_bool32 c89str_is_little_endian(void)
 {
 #if defined(C89STR_X86) || defined(C89STR_X64)
     return C89STR_TRUE;
@@ -512,7 +512,7 @@ static C89STR_INLINE c89str_bool32 c89str_is_little_endian()
 #endif
 }
 
-static C89STR_INLINE c89str_bool32 c89str_is_big_endian()
+static C89STR_INLINE c89str_bool32 c89str_is_big_endian(void)
 {
     return !c89str_is_little_endian();
 }
