@@ -152,6 +152,7 @@ C89STR_API void  c89str_free(void* p, const c89str_allocation_callbacks* pAlloca
 /* Standard Library Alternatives */
 C89STR_API size_t c89str_strlen(const char* src);
 C89STR_API char* c89str_strcpy(char* dst, const char* src);
+C89STR_API int c89str_strncpy(char* dst, const char* src, size_t count);
 C89STR_API int c89str_strcpy_s(char* dst, size_t dstCap, const char* src);
 C89STR_API int c89str_strncpy_s(char* dst, size_t dstCap, const char* src, size_t count);
 C89STR_API int c89str_strcat_s(char* dst, size_t dstCap, const char* src);
@@ -723,6 +724,34 @@ C89STR_API char* c89str_strcpy(char* dst, const char* src)
     return dstorig;
 }
 
+C89STR_API int c89str_strncpy(char* dst, const char* src, size_t count)
+{
+    size_t maxcount;
+    size_t i;
+
+    if (dst == 0) {
+        return EINVAL;
+    }
+    if (src == 0) {
+        dst[0] = '\0';
+        return EINVAL;
+    }
+
+    maxcount = count;
+
+    for (i = 0; i < maxcount && src[i] != '\0'; ++i) {
+        dst[i] = src[i];
+    }
+
+    if (src[i] == '\0' || i == count || count == ((size_t)-1)) {
+        dst[i] = '\0';
+        return 0;
+    }
+
+    dst[0] = '\0';
+    return ERANGE;
+}
+
 C89STR_API int c89str_strcpy_s(char* dst, size_t dstCap, const char* src)
 {
     size_t i;
@@ -1035,7 +1064,6 @@ C89STR_API int c89str_strnicmp(const char* str1, const char* str2, size_t count)
     /* It would be good if we could use a custom implementation based on the Unicode standard here. Would require a lot of work to get that right, however. */
     return c89str_strnicmp_ascii(str1, str2, count);
 #endif
-
 }
 
 
