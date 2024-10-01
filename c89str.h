@@ -5233,7 +5233,7 @@ C89STR_API size_t c89str_utf8_next_line(const c89str_utf8* pUTF8, size_t utf8Len
 
         if (c89str_utf32_is_newline(utf32) == C89STR_TRUE) {
             /* Special case for \r\n. This needs to be treated as one line. The \r by itself should also be treated as a new line, however. */
-            if (utf8Len + utf8Processed > 0 && pUTF8[utf8Processed] == '\n') {
+            if (utf32 == '\r' && utf8Len + utf8Processed > 0 && pUTF8[utf8Processed] == '\n') {
                 nextBeg += 1;
             }
 
