@@ -5529,49 +5529,6 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
             }
         }
 
-#if 0
-        /* It's not whitespace or a new line. */
-        if (txt[off] == '/') {
-            /* Might be an opening comment. */
-            if (((off+1) < len) && txt[off+1] == '*') {
-                /* It's a block comment. We need to include everything up to and including the block comment terminator token. */
-                errno_t searchResult;
-                size_t tokenLen;
-            
-                off += 2;
-                searchResult = c89str_findn(txt + off, (len - off), "*/", 2, &tokenLen);
-                if (searchResult != C89STR_SUCCESS) {
-                    /* The closing token could not be found. Treat the entire rest of the file as a comment. */
-                    result = c89str_lexer_set_token(pLexer, c89str_token_type_comment, (len - off) + 2);  /* +2 for the opening. */
-                } else {
-                    /* We found the closing token. */
-                    result = c89str_lexer_set_token(pLexer, c89str_token_type_comment, tokenLen + 4);     /* +2 for the opening, +2 for the closing. */
-                }
-
-                if (pLexer->options.skipComments) {
-                    continue;
-                } else {
-                    return result;
-                }
-            } else if ((off+1 < len) && txt[off+1] == '/') {
-                /* It's a line comment. Note that we do *not* include the new line in the returned token. */
-                size_t thisLineLen;
-            
-                off += 2;
-                c89str_utf8_next_line(txt + off, (len - off), &thisLineLen);
-                result = c89str_lexer_set_token(pLexer, c89str_token_type_comment, thisLineLen + 2);      /* +2 for the opening. */
-                if (pLexer->options.skipComments) {
-                    continue;
-                } else {
-                    return result;
-                }
-            } else {
-                /* It's just a general token. */
-                return c89str_lexer_set_single_char(pLexer, txt[off]);
-            }
-        }
-#endif
-
         /* It's not whitespace, new line nor a comment. Check if it's a string. We support both double and single quoted strings. */
         if (txt[off] == '\"') {
             off += 1;
