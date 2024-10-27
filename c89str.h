@@ -5265,70 +5265,6 @@ C89STR_API size_t c89str_utf8_next_line(const c89str_utf8* pUTF8, size_t utf8Len
 /*
 Lexer
 */
-static c89str c89str_lexer_unescape_string(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pToken, size_t tokenLen)
-{
-    errno_t result;
-    c89str str = NULL;
-
-    if (pToken == NULL) {
-        return NULL;
-    }
-
-    /* We need to remove the surrounding quotes. */
-    if ((pToken[0] == '\"' || pToken[0] == '\'') && tokenLen >= 2) {
-        str = c89str_newn(pAllocationCallbacks, pToken + 1, tokenLen - 2);
-    } else {
-        str = c89str_newn(pAllocationCallbacks, pToken, tokenLen);
-    }
-
-    result = c89str_get_res(str);
-    if (result != C89STR_SUCCESS) {
-        return str;
-    }
-
-
-    /*
-    From here on we won't ever be making the string larger. We can therefore do an efficient iteration
-    with the assumption that we won't ever need to expand. We need to transform the following:
-
-        \\r -> \r
-        \\n -> \n
-        \\t -> \t
-        \\f -> \f
-        \\" -> \"
-        \\' -> \'
-        \\\ -> \\
-        \\0 -> \0
-    */
-    {
-        size_t i = 0;
-        while (i < c89str_get_len(str)) {
-            if (str[i] == '\\' && i+1 < c89str_get_len(str)) {
-                if (str[i+1] == '\r' ||
-                    str[i+1] == '\n' ||
-                    str[i+1] == '\t' ||
-                    str[i+1] == '\f' ||
-                    str[i+1] == '\"' ||
-                    str[i+1] == '\'' ||
-                    str[i+1] == '\\' ||
-                    str[i+1] == '\0') {
-                    str = c89str_remove(str, pAllocationCallbacks, i, i + 1);
-                    continue;   /* Continue without incrementing the counter. */
-                }
-            }
-
-            i += 1;
-        }
-    }
-
-    /* TODO: Handle unicode constants with '\u'. */
-    /* TODO: Handle hex constants with '\x'. */
-    /* TODO: Handle octal constants with '\0[0..7]'. */
-
-    /* We're done. */
-    return str;
-}
-
 C89STR_API errno_t c89str_lexer_init(c89str_lexer* pLexer, const char* pText, size_t textLen)
 {
     if (pLexer == NULL) {
@@ -6008,6 +5944,71 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
 
     /* Shouldn't get here. */
     /*return 0;*/
+}
+
+
+static c89str c89str_lexer_unescape_string(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pToken, size_t tokenLen)
+{
+    errno_t result;
+    c89str str = NULL;
+
+    if (pToken == NULL) {
+        return NULL;
+    }
+
+    /* We need to remove the surrounding quotes. */
+    if ((pToken[0] == '\"' || pToken[0] == '\'') && tokenLen >= 2) {
+        str = c89str_newn(pAllocationCallbacks, pToken + 1, tokenLen - 2);
+    } else {
+        str = c89str_newn(pAllocationCallbacks, pToken, tokenLen);
+    }
+
+    result = c89str_get_res(str);
+    if (result != C89STR_SUCCESS) {
+        return str;
+    }
+
+
+    /*
+    From here on we won't ever be making the string larger. We can therefore do an efficient iteration
+    with the assumption that we won't ever need to expand. We need to transform the following:
+
+        \\r -> \r
+        \\n -> \n
+        \\t -> \t
+        \\f -> \f
+        \\" -> \"
+        \\' -> \'
+        \\\ -> \\
+        \\0 -> \0
+    */
+    {
+        size_t i = 0;
+        while (i < c89str_get_len(str)) {
+            if (str[i] == '\\' && i+1 < c89str_get_len(str)) {
+                if (str[i+1] == '\r' ||
+                    str[i+1] == '\n' ||
+                    str[i+1] == '\t' ||
+                    str[i+1] == '\f' ||
+                    str[i+1] == '\"' ||
+                    str[i+1] == '\'' ||
+                    str[i+1] == '\\' ||
+                    str[i+1] == '\0') {
+                    str = c89str_remove(str, pAllocationCallbacks, i, i + 1);
+                    continue;   /* Continue without incrementing the counter. */
+                }
+            }
+
+            i += 1;
+        }
+    }
+
+    /* TODO: Handle unicode constants with '\u'. */
+    /* TODO: Handle hex constants with '\x'. */
+    /* TODO: Handle octal constants with '\0[0..7]'. */
+
+    /* We're done. */
+    return str;
 }
 
 C89STR_API errno_t c89str_lexer_transform_token(c89str_lexer* pLexer, c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks)
