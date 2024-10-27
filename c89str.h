@@ -320,8 +320,7 @@ C89STR_API size_t  c89str_cap(const c89str str);
 C89STR_API errno_t c89str_result(const c89str str);
 
 
-/* Lexer */
-
+/* BEG c89str_lexer.h */
 /* For single characters, the UTF-32 code point will be the token. Otherwise it will be an entry in this enum. */
 typedef enum
 {
@@ -386,6 +385,8 @@ typedef struct
 
 C89STR_API errno_t c89str_lexer_init(c89str_lexer* pLexer, const char* pText, size_t textLen);
 C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer);
+/* END c89str_lexer.h */
+
 C89STR_API errno_t c89str_lexer_transform_token(c89str_lexer* pLexer, c89str* pStr, const c89str_allocation_callbacks* pAllocationCallbacks);
 
 
@@ -5262,9 +5263,7 @@ C89STR_API size_t c89str_utf8_next_line(const c89str_utf8* pUTF8, size_t utf8Len
 
 
 
-/*
-Lexer
-*/
+/* BEG c89str_lexer.c */
 C89STR_API errno_t c89str_lexer_init(c89str_lexer* pLexer, const char* pText, size_t textLen)
 {
     if (pLexer == NULL) {
@@ -5945,6 +5944,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
     /* Shouldn't get here. */
     /*return 0;*/
 }
+/* END c89str_lexer.c */
 
 
 static c89str c89str_lexer_unescape_string(const c89str_allocation_callbacks* pAllocationCallbacks, const char* pToken, size_t tokenLen)
