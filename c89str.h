@@ -1149,7 +1149,7 @@ static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size
 
         if ((c0 >= 0x09 && c0 <= 0x0D) || c0 == 0x20) {
             i += 1;
-            continue;
+            break;
         }
 
         if (i + 1 < len) {
@@ -1158,7 +1158,7 @@ static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size
             if (c0 == 0xC2) {
                 if (c1 == 0x85 || c1 == 0xA0) {
                     i += 2;
-                    continue;   /* 0x0085, 0x00A0 */
+                    break;   /* 0x0085, 0x00A0 */
                 }
             }
 
@@ -1169,7 +1169,7 @@ static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size
                     if (c1 == 0x9A) {
                         if (c2 == 0x80) {
                             i += 3;
-                            continue;   /* 0x1680 */
+                            break;   /* 0x1680 */
                         }
                     }
                 }
@@ -1178,19 +1178,19 @@ static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size
                     if (c1 == 0x80) {
                         if (c2 >= 0x80 && c2 <= 0x8A) {
                             i += 3;
-                            continue;   /* 0x2000 - 0x200A */
+                            break;   /* 0x2000 - 0x200A */
                         }
 
                         if (c2 == 0xA8 || c2 == 0xA9 || c2 == 0xAF) {
                             i += 3;
-                            continue;   /* 0x2028, 0x2029, 0x202F */
+                            break;   /* 0x2028, 0x2029, 0x202F */
                         }
                     }
 
                     if (c1 == 0x81) {
                         if (c2 == 0x9F) {
                             i += 3;
-                            continue;   /* 0x205F */
+                            break;   /* 0x205F */
                         }
                     }
                 }
@@ -1199,7 +1199,7 @@ static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size
                     if (c1 == 0x80) {
                         if (c2 == 0x80) {
                             i += 3;
-                            continue;   /* 0x3000 */
+                            break;   /* 0x3000 */
                         }
                     }
                 }
@@ -1213,6 +1213,77 @@ static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size
     return i;
 }
 
+static C89STR_INLINE size_t c89str_scan_leading_newline(const char* str, size_t len)
+{
+    size_t i;
+
+    if (str == NULL || len == 0) {
+        return C89STR_FALSE;
+    }
+
+    i = 0;
+    while (str[i] != '\0' && i < len) {
+        unsigned char c0 = (unsigned char)str[i];
+
+        if (c0 >= 0x0A && c0 <= 0x0D) {
+            i += 1;
+            break;
+        }
+
+        if (i + 1 < len) {
+            unsigned char c1 = (unsigned char)str[i + 1];
+
+            if (c0 == 0xC2) {
+                if (c1 == 0x85) {
+                    i += 2;
+                    break;   /* 0x0085 */
+                }
+            }
+
+            if (i + 2 < len) {
+                unsigned char c2 = (unsigned char)str[i + 2];
+
+                if (c0 == 0xE2) {
+                    if (c1 == 0x80) {
+                        if (c2 == 0xA8 || c2 == 0xA9 ) {
+                            i += 3;
+                            break;   /* 0x2028, 0x2029 */
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Getting here means we've encountered a non-newline character. */
+        break;
+    }
+
+    return i;
+}
+
+C89STR_API size_t c89str_ltrim(const char* str, size_t len)
+{
+    size_t i;
+
+    if (str == NULL || len == 0) {
+        return c89str_npos;
+    }
+
+    i = 0;
+    while (i < len && str[i] != '\0') {
+        size_t whitespaceLen = c89str_scan_leading_whitespace(str + i, len - i);
+        if (whitespaceLen > 0) {
+            /* Found a whitespace. Keep scanning. */
+            i += 1;
+        } else {
+            /* Not a whitespace. Stop scanning. */
+            break;
+        }
+    }
+
+    return i;
+}
+
 C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t len)
 {
     size_t offset;
@@ -1221,7 +1292,7 @@ C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t le
         return C89STR_TRUE;
     }
 
-    offset = c89str_scan_leading_whitespace(str, len);
+    offset = c89str_ltrim(str, len);
     if (offset == len || str[offset] == '\0') {
         return C89STR_TRUE;
     }
@@ -1229,9 +1300,10 @@ C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t le
     return C89STR_FALSE;
 }
 
+
+
 C89STR_API size_t c89str_find_next_whitespace(const char* str, size_t len, size_t* pWhitespaceLen)
 {
-    /* This can be written in terms of c89str_scan_leading_whitespace(). */
     size_t i;
 
     if (str == NULL || len == 0) {
@@ -1239,7 +1311,7 @@ C89STR_API size_t c89str_find_next_whitespace(const char* str, size_t len, size_
     }
 
     i = 0;
-    while (i < len && str[0] != '\0') {
+    while (i < len && str[i] != '\0') {
         size_t whitespaceLen = c89str_scan_leading_whitespace(str + i, len - i);
         if (whitespaceLen > 0) {
             /* Found a whitespace. We're done. */
@@ -1255,6 +1327,34 @@ C89STR_API size_t c89str_find_next_whitespace(const char* str, size_t len, size_
 
     /* Getting here means no whitespace was not found. */
     return c89str_npos;
+}
+
+C89STR_API size_t c89str_find_next_line(const char* str, size_t len, size_t* pThisLineLen)
+{
+    size_t i;
+    size_t newlineCodepointLen = 0;
+
+    if (str == NULL || len == 0) {
+        return c89str_npos;
+    }
+
+    i = 0;
+    while (i < len && str[i] != '\0') {
+        newlineCodepointLen = c89str_scan_leading_newline(str + i, len - i);
+        if (newlineCodepointLen > 0) {
+            /* Found a new-line codepoint. We're done. */
+        } else {
+            /* Not a new-line codepoint. Keep scanning. */
+            i += 1;
+        }
+    }
+
+    /* At this point, `i` should be pointing to the end of the last line. */
+    if (pThisLineLen != NULL) {
+        *pThisLineLen = i;
+    }
+
+    return i + newlineCodepointLen; /* Add the length of the new-line codepoint so the return value points to the start of the next line. */
 }
 
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult)
@@ -5207,7 +5307,7 @@ C89STR_API size_t c89str_utf8_find_next_whitespace(const c89str_utf8* pUTF8, siz
 
 C89STR_API size_t c89str_utf8_ltrim_offset(const c89str_utf8* pUTF8, size_t utf8Len)
 {
-    return c89str_scan_leading_whitespace((const char*)pUTF8, utf8Len);
+    return c89str_ltrim((const char*)pUTF8, utf8Len);
 }
 
 C89STR_API size_t c89str_utf8_rtrim_offset(const c89str_utf8* pUTF8, size_t utf8Len)
@@ -5248,56 +5348,7 @@ C89STR_API size_t c89str_utf8_rtrim_offset(const c89str_utf8* pUTF8, size_t utf8
 
 C89STR_API size_t c89str_utf8_find_next_line(const c89str_utf8* pUTF8, size_t utf8Len, size_t* pThisLineLen)
 {
-    size_t thisLen = 0;
-    size_t nextBeg = 0;
-
-    if (pThisLineLen != NULL) {
-        *pThisLineLen = 0;
-    }
-
-    if (pUTF8 == NULL) {
-        return c89str_npos;
-    }
-
-    /* This could be faster, but it's practical. */
-    while (pUTF8[0] != '\0' && utf8Len > 0) {
-        c89str_utf32 utf32;
-        size_t utf8Processed;
-        int err;
-
-        /* We expect ENOMEM to be returned, but we should still have a valid utf32 character. */
-        err = c89str_utf8_to_utf32(&utf32, 1, NULL, pUTF8, utf8Len, &utf8Processed, 0);
-        if (err != 0 && err != ENOMEM) {
-            break;
-        }
-
-        if (utf8Processed == 0) {
-            break;
-        }
-
-        nextBeg += utf8Processed;
-
-        if (c89str_utf32_is_newline(utf32) == C89STR_TRUE) {
-            /* Special case for \r\n. This needs to be treated as one line. The \r by itself should also be treated as a new line, however. */
-            if (utf32 == '\r' && utf8Len + utf8Processed > 0 && pUTF8[utf8Processed] == '\n') {
-                nextBeg += 1;
-            }
-
-            break;
-        }
-
-        C89STR_ASSERT(utf8Len >= utf8Processed);  /* If there wasn't enough data in the UTF-8 string, c89str_utf8_to_utf32() should have failed. */
-
-        thisLen += utf8Processed;
-        pUTF8   += utf8Processed;
-        utf8Len -= utf8Processed;
-    }
-
-    if (pThisLineLen != NULL) {
-        *pThisLineLen = thisLen;
-    }
-
-    return nextBeg;
+    return c89str_find_next_line((const char*)pUTF8, utf8Len, pThisLineLen);
 }
 /* End Unicode */
 
@@ -5357,7 +5408,7 @@ static errno_t c89str_lexer_set_token(c89str_lexer* pLexer, c89str_utf32 token, 
         const char* pRunningStr = pLexer->pTokenStr;
         for (;;) {
             size_t thisLineLen;
-            size_t nextLineOff = c89str_utf8_find_next_line(pRunningStr, pLexer->tokenLen - (pRunningStr - pLexer->pTokenStr), &thisLineLen);
+            size_t nextLineOff = c89str_find_next_line(pRunningStr, pLexer->tokenLen - (pRunningStr - pLexer->pTokenStr), &thisLineLen);
             if (nextLineOff == thisLineLen) {
                 break;  /* Reached the end. */
             }
@@ -5492,19 +5543,11 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
 
         /* First check if we're on whitespace. */
         {
-            /*
-            TODO: Small optimization opportunity. Down below we are using c89str_find_next_whitespace(), but we're ignoring
-            the whitespace length output parameter. Because c89str_find_next_whitespace() is already doing a scan of the
-            leading whitespace, the c89str_scan_leading_whitespace() call here is redundant. We should be able to make use
-            of the pWhitespaceLen output parameter of c89str_find_next_whitespace() to avoid this redundant scan. We would
-            need to cache the result of c89str_scan_leading_whitespace() and check if it's > 0. If so, we can skip the
-            call to c89str_scan_leading_whitespace() and just use the cached value.
-            */
-            size_t whitespaceLen = c89str_scan_leading_whitespace(txt + off, (len - off));
+            size_t whitespaceLen = c89str_ltrim(txt + off, (len - off));
             if (whitespaceLen > 0) {
                 /* It's whitespace. Our lexer makes a distrinction between whitespace and new line characters so we need to check that too. */
                 size_t thisLineLen;
-                size_t nextLineOff = c89str_utf8_find_next_line(txt + off, (len - off), &thisLineLen);
+                size_t nextLineOff = c89str_find_next_line(txt + off, (len - off), &thisLineLen);
                 if (thisLineLen > whitespaceLen) {
                     /* There's no new line character within the whitespace area. */
                     result = c89str_lexer_set_token(pLexer, c89str_token_type_whitespace, whitespaceLen);
@@ -5546,7 +5589,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
             openingLen = c89str_strlen(pLexer->options.pLineCommentOpeningToken);
             
             off += openingLen;
-            c89str_utf8_find_next_line(txt + off, (len - off), &thisLineLen);
+            c89str_find_next_line(txt + off, (len - off), &thisLineLen);
             result = c89str_lexer_set_token(pLexer, c89str_token_type_comment, thisLineLen + openingLen);
             if (pLexer->options.skipComments) {
                 continue;
