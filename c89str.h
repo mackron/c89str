@@ -168,8 +168,9 @@ C89STR_API int c89str_strnicmp(const char* str1, const char* str2, size_t count)
 /* Miscellaneous Helpers */
 /* BEG c89str_helpers.h */
 #define c89str_is_null_or_empty(str) ((str) == NULL || (str)[0] == 0)
-C89STR_API errno_t c89str_find(const char* str, const char* other, size_t* pResult);  /* Returns NOENT if the string cannot be found, and sets pResult to c89str_npos. */
+C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t strLen);
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult);
+C89STR_API errno_t c89str_find(const char* str, const char* other, size_t* pResult);  /* Returns NOENT if the string cannot be found, and sets pResult to c89str_npos. */
 C89STR_API int c89str_strncmpn(const char* str1, size_t str1Len, const char* str2, size_t str2Len);
 C89STR_API c89str_bool32 c89str_begins_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 begins with str2. */
 C89STR_API c89str_bool32 c89str_ends_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 ends with str2. */
@@ -1134,6 +1135,85 @@ C89STR_API int c89str_strnicmp(const char* str1, const char* str2, size_t count)
 
 
 /* BEG c89str_helpers.c */
+C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t strLen)
+{
+    if (str == NULL) {
+        return C89STR_TRUE;
+    }
+
+    while (str[0] != '\0' && strLen > 0) {
+        unsigned char c0 = (unsigned char)str[0];
+
+        str    += 1;
+        strLen -= 1;
+
+        if (c0 >= 0x09 && c0 <= 0x0D) {
+            continue;
+        }
+        if (c0 == 0x20) {
+            continue;
+        }
+
+        if (strLen > 0) {
+            unsigned char c1 = (unsigned char)str[0];
+
+            str    += 1;
+            strLen -= 1;
+
+            if (c0 == 0xC2) {
+                if (c1 == 0x85 || c1 == 0xA0) {
+                    continue;   /* 0x0085, 0x00A0 */
+                }
+            }
+
+            if (strLen > 1) {
+                unsigned char c2 = (unsigned char)str[0];
+
+                str    += 1;
+                strLen -= 1;
+
+                if (c0 == 0xE1) {
+                    if (c1 == 0x9A) {
+                        if (c2 == 0x80) {
+                            continue;   /* 0x1680 */
+                        }
+                    }
+                }
+
+                if (c0 == 0xE2) {
+                    if (c1 == 0x80) {
+                        if (c2 >= 0x80 && c2 <= 0x8A) {
+                            continue;   /* 0x2000 - 0x200A */
+                        }
+
+                        if (c2 == 0xA8 || c2 == 0xA9 || c2 == 0xAF) {
+                            continue;   /* 0x2028, 0x2029, 0x202F */
+                        }
+                    }
+
+                    if (c1 == 0x81) {
+                        if (c2 == 0x9F) {
+                            continue;   /* 0x205F */
+                        }
+                    }
+                }
+
+                if (c0 == 0xE3) {
+                    if (c1 == 0x80) {
+                        if (c2 == 0x80) {
+                            continue;   /* 0x3000 */
+                        }
+                    }
+                }
+            }
+        }
+
+        return C89STR_FALSE;
+    }
+
+    return C89STR_TRUE;
+}
+
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult)
 {
     size_t strOff;
@@ -1286,7 +1366,7 @@ C89STR_API errno_t c89str_to_uint(const char* str, size_t len, unsigned int* pVa
 {
     unsigned int value = 0;
 
-    if (pValue == NULL || c89str_utf8_is_null_or_whitespace(str, len)) {
+    if (pValue == NULL || c89str_is_null_or_whitespace(str, len)) {
         return EINVAL;
     }
 
@@ -1313,7 +1393,7 @@ C89STR_API errno_t c89str_to_int(const char* str, size_t len, int* pValue)
     int sign  = 1;
     int value = 0;
 
-    if (pValue == NULL || c89str_utf8_is_null_or_whitespace(str, len)) {
+    if (pValue == NULL || c89str_is_null_or_whitespace(str, len)) {
         return EINVAL;
     }
 
@@ -5073,35 +5153,7 @@ C89STR_API c89str_bool32 c89str_utf32_is_newline(c89str_utf32 utf32)
 
 C89STR_API c89str_bool32 c89str_utf8_is_null_or_whitespace(const c89str_utf8* pUTF8, size_t utf8Len)
 {
-    if (pUTF8 == NULL) {
-        return C89STR_TRUE;
-    }
-
-    /* This could be faster, but it's practical. */
-    while (pUTF8[0] != '\0' && utf8Len > 0) {
-        c89str_utf32 utf32;
-        size_t utf8Processed;
-        int err;
-
-        /* We expect ENOMEM to be returned, but we should still have a valid utf32 character. */
-        err = c89str_utf8_to_utf32(&utf32, 1, NULL, pUTF8, utf8Len, &utf8Processed, 0);
-        if (err != 0 && err != ENOMEM) {
-            break;
-        }
-
-        if (utf8Processed == 0) {
-            break;
-        }
-
-        if (c89str_utf32_is_null_or_whitespace(&utf32, 1) == C89STR_FALSE) {
-            return C89STR_FALSE;
-        }
-
-        pUTF8   += utf8Processed;
-        utf8Len -= utf8Processed;
-    }
-
-    return C89STR_TRUE;
+    return c89str_is_null_or_whitespace((const char*)pUTF8, utf8Len);
 }
 
 C89STR_API size_t c89str_utf8_next_whitespace(const c89str_utf8* pUTF8, size_t utf8Len)
