@@ -1229,6 +1229,34 @@ C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t le
     return C89STR_FALSE;
 }
 
+C89STR_API size_t c89str_find_next_whitespace(const char* str, size_t len, size_t* pWhitespaceLen)
+{
+    /* This can be written in terms of c89str_scan_leading_whitespace(). */
+    size_t i;
+
+    if (str == NULL || len == 0) {
+        return c89str_npos;
+    }
+
+    i = 0;
+    while (i < len && str[0] != '\0') {
+        size_t whitespaceLen = c89str_scan_leading_whitespace(str + i, len - i);
+        if (whitespaceLen > 0) {
+            /* Found a whitespace. We're done. */
+            if (pWhitespaceLen != NULL) {
+                *pWhitespaceLen = whitespaceLen;
+            }
+
+            return i;
+        } else {
+            i += 1; /* Not a whitespace. Keep scanning. */
+        }
+    }
+
+    /* Getting here means no whitespace was not found. */
+    return c89str_npos;
+}
+
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult)
 {
     size_t strOff;
@@ -5173,36 +5201,7 @@ C89STR_API c89str_bool32 c89str_utf8_is_null_or_whitespace(const c89str_utf8* pU
 
 C89STR_API size_t c89str_utf8_find_next_whitespace(const c89str_utf8* pUTF8, size_t utf8Len)
 {
-    size_t utf8RunningOffset = 0;
-
-    if (pUTF8 == NULL) {
-        return c89str_npos;
-    }
-
-    while (pUTF8[0] != '\0' && utf8Len > 0) {
-        c89str_utf32 utf32;
-        size_t utf8Processed;
-        int err;
-
-        err = c89str_utf8_to_utf32(&utf32, 1, NULL, pUTF8, utf8Len, &utf8Processed, 0);
-        if (err != 0 && err != ENOMEM) {
-            break;
-        }
-
-        if (utf8Processed == 0) {
-            break;
-        }
-
-        if (c89str_utf32_is_null_or_whitespace(&utf32, 1) == C89STR_TRUE) {
-            return utf8RunningOffset;
-        }
-
-        utf8RunningOffset += utf8Processed;
-        pUTF8             += utf8Processed;
-        utf8Len           -= utf8Processed;
-    }
-
-    return c89str_npos;
+    return c89str_find_next_whitespace((const char*)pUTF8, utf8Len, NULL);
 }
 
 
@@ -5493,6 +5492,14 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
 
         /* First check if we're on whitespace. */
         {
+            /*
+            TODO: Small optimization opportunity. Down below we are using c89str_find_next_whitespace(), but we're ignoring
+            the whitespace length output parameter. Because c89str_find_next_whitespace() is already doing a scan of the
+            leading whitespace, the c89str_scan_leading_whitespace() call here is redundant. We should be able to make use
+            of the pWhitespaceLen output parameter of c89str_find_next_whitespace() to avoid this redundant scan. We would
+            need to cache the result of c89str_scan_leading_whitespace() and check if it's > 0. If so, we can skip the
+            call to c89str_scan_leading_whitespace() and just use the cached value.
+            */
             size_t whitespaceLen = c89str_scan_leading_whitespace(txt + off, (len - off));
             if (whitespaceLen > 0) {
                 /* It's whitespace. Our lexer makes a distrinction between whitespace and new line characters so we need to check that too. */
@@ -5915,7 +5922,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
                     (txt[off] >= 'A' && txt[off] <= 'Z') ||
                     (txt[off] == '_')                    ||
                     ((unsigned char)txt[off] >= 0x80)) {
-                    size_t tokenMaxLen = c89str_utf8_find_next_whitespace(txt + off, (len - off));   /* <-- We'll be using this to ensure we don't include any Unicode whitespace characters. */
+                    size_t tokenMaxLen = c89str_find_next_whitespace(txt + off, (len - off), NULL);   /* <-- We'll be using this to ensure we don't include any Unicode whitespace characters. */
                     size_t tokenLen = 0;
 
                     while (tokenLen < (len - off)) {
