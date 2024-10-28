@@ -1334,6 +1334,10 @@ C89STR_API size_t c89str_find_next_line(const char* str, size_t len, size_t* pTh
     size_t i;
     size_t newlineCodepointLen = 0;
 
+    if (pThisLineLen != NULL) {
+        *pThisLineLen = 0;
+    }
+
     if (str == NULL || len == 0) {
         return c89str_npos;
     }
