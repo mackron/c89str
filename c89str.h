@@ -1343,6 +1343,7 @@ C89STR_API size_t c89str_find_next_line(const char* str, size_t len, size_t* pTh
         newlineCodepointLen = c89str_scan_leading_newline(str + i, len - i);
         if (newlineCodepointLen > 0) {
             /* Found a new-line codepoint. We're done. */
+            break;
         } else {
             /* Not a new-line codepoint. Keep scanning. */
             i += 1;
