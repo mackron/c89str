@@ -150,6 +150,7 @@ C89STR_API void  c89str_free(void* p, const c89str_allocation_callbacks* pAlloca
 
 
 /* Standard Library Alternatives */
+/* BEG c89str_stdlib.h */
 C89STR_API size_t c89str_strlen(const char* src);
 C89STR_API char* c89str_strcpy(char* dst, const char* src);
 C89STR_API int c89str_strncpy(char* dst, const char* src, size_t count);
@@ -158,16 +159,17 @@ C89STR_API int c89str_strncpy_s(char* dst, size_t dstCap, const char* src, size_
 C89STR_API int c89str_strcat_s(char* dst, size_t dstCap, const char* src);
 C89STR_API int c89str_strncat_s(char* dst, size_t dstCap, const char* src, size_t count);
 C89STR_API int c89str_itoa_s(int value, char* dst, size_t dstCap, int radix);
+C89STR_API int c89str_strcmp(const char* str1, const char* str2);
+C89STR_API int c89str_strncmp(const char* str1, const char* str2, size_t maxLen);
 C89STR_API int c89str_stricmp(const char* str1, const char* str2);
 C89STR_API int c89str_strnicmp(const char* str1, const char* str2, size_t count);
-
+/* END c89str_stdlib.h */
 
 /* Miscellaneous Helpers */
+/* BEG c89str_helpers.h */
 #define c89str_is_null_or_empty(str) ((str) == NULL || (str)[0] == 0)
 C89STR_API errno_t c89str_find(const char* str, const char* other, size_t* pResult);  /* Returns NOENT if the string cannot be found, and sets pResult to c89str_npos. */
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult);
-C89STR_API int c89str_strcmp(const char* str1, const char* str2);
-C89STR_API int c89str_strncmp(const char* str1, const char* str2, size_t maxLen);
 C89STR_API int c89str_strncmpn(const char* str1, size_t str1Len, const char* str2, size_t str2Len);
 C89STR_API c89str_bool32 c89str_begins_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 begins with str2. */
 C89STR_API c89str_bool32 c89str_ends_with(const char* str1, size_t str1Len, const char* str2, size_t str2Len); /* Returns 0 if str1 ends with str2. */
@@ -176,6 +178,7 @@ C89STR_API errno_t c89str_to_int(const char* str, size_t strLen, int* pValue);
 C89STR_API errno_t c89str_ascii_tolower(char* dst, size_t dstCap, const char* src, size_t srcLen);
 C89STR_API errno_t c89str_ascii_toupper(char* dst, size_t dstCap, const char* src, size_t srcLen);
 C89STR_API c89str_bool32 c89str_is_all_digits(const char* str, size_t strLen);
+/* END c89str_helpers.h */
 
 
 /* Unicode API */
@@ -439,6 +442,7 @@ C89STR_API void c89str_set_sprintf_separators(char comma, char period);
 #ifndef c89str_c
 #define c89str_c
 
+/* BEG c89str_fallthrough.h */
 #if defined(__has_c_attribute) && defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 202000L)
     #if __has_c_attribute(fallthrough)
         #define C89STR_FALLTHROUGH [[fallthrough]]
@@ -452,6 +456,7 @@ C89STR_API void c89str_set_sprintf_separators(char comma, char period);
 #if !defined(C89STR_FALLTHROUGH)
     #define C89STR_FALLTHROUGH ((void)0)
 #endif
+/* END c89str_fallthrough.h */
 
 #include <stdlib.h> /* malloc(), realloc(), free(). */
 #include <string.h> /* For memcpy(). */
@@ -688,6 +693,7 @@ C89STR_API void c89str_free(void* p, const c89str_allocation_callbacks* pAllocat
 
 
 
+/* BEG c89str_stdlib.c */
 C89STR_API size_t c89str_strlen(const char* src)
 {
     const char* end;
@@ -970,6 +976,64 @@ C89STR_API int c89str_itoa_s(int value, char* dst, size_t dstCap, int radix)
     return 0;
 }
 
+C89STR_API int c89str_strcmp(const char* str1, const char* str2)
+{
+    if (str1 == str2) return  0;
+
+    /* These checks differ from the standard implementation. It's not important, but I prefer it just for sanity. */
+    if (str1 == NULL) return -1;
+    if (str2 == NULL) return  1;
+
+    for (;;) {
+        if (str1[0] == '\0') {
+            break;
+        }
+
+        if (str1[0] != str2[0]) {
+            break;
+        }
+
+        str1 += 1;
+        str2 += 1;
+    }
+
+    return ((unsigned char*)str1)[0] - ((unsigned char*)str2)[0];
+}
+
+C89STR_API int c89str_strncmp(const char* str1, const char* str2, size_t maxLen)
+{
+    if (str1 == str2) return  0;
+
+    /* These checks differ from the standard implementation. It's not important, but I prefer it just for sanity. */
+    if (str1 == NULL) return -1;
+    if (str2 == NULL) return  1;
+
+    /* This function still needs to check for null terminators even though the length has been specified. */
+    for (;;) {
+        if (maxLen == 0) {
+            break;
+        }
+
+        if (str1[0] == '\0') {
+            break;
+        }
+
+        if (str1[0] != str2[0]) {
+            break;
+        }
+
+        str1 += 1;
+        str2 += 1;
+        maxLen -= 1;
+    }
+
+    if (maxLen == 0) {
+        return 0;
+    }
+
+    return ((unsigned char*)str1)[0] - ((unsigned char*)str2)[0];
+}
+
 C89STR_API int c89str_stricmp_ascii(const char* str1, const char* str2)
 {
     if (str1 == NULL || str2 == NULL) {
@@ -1066,14 +1130,10 @@ C89STR_API int c89str_strnicmp(const char* str1, const char* str2, size_t count)
     return c89str_strnicmp_ascii(str1, str2, count);
 #endif
 }
+/* END c89str_stdlib.c */
 
 
-
-C89STR_API errno_t c89str_find(const char* str, const char* other, size_t* pResult)
-{
-    return c89str_findn(str, (size_t)-1, other, (size_t)-1, pResult);
-}
-
+/* BEG c89str_helpers.c */
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult)
 {
     size_t strOff;
@@ -1123,62 +1183,9 @@ C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* othe
     return ENOENT;
 }
 
-C89STR_API int c89str_strcmp(const char* str1, const char* str2)
+C89STR_API errno_t c89str_find(const char* str, const char* other, size_t* pResult)
 {
-    if (str1 == str2) return  0;
-
-    /* These checks differ from the standard implementation. It's not important, but I prefer it just for sanity. */
-    if (str1 == NULL) return -1;
-    if (str2 == NULL) return  1;
-
-    for (;;) {
-        if (str1[0] == '\0') {
-            break;
-        }
-
-        if (str1[0] != str2[0]) {
-            break;
-        }
-
-        str1 += 1;
-        str2 += 1;
-    }
-
-    return ((unsigned char*)str1)[0] - ((unsigned char*)str2)[0];
-}
-
-C89STR_API int c89str_strncmp(const char* str1, const char* str2, size_t maxLen)
-{
-    if (str1 == str2) return  0;
-
-    /* These checks differ from the standard implementation. It's not important, but I prefer it just for sanity. */
-    if (str1 == NULL) return -1;
-    if (str2 == NULL) return  1;
-
-    /* This function still needs to check for null terminators even though the length has been specified. */
-    for (;;) {
-        if (maxLen == 0) {
-            break;
-        }
-
-        if (str1[0] == '\0') {
-            break;
-        }
-
-        if (str1[0] != str2[0]) {
-            break;
-        }
-
-        str1 += 1;
-        str2 += 1;
-        maxLen -= 1;
-    }
-
-    if (maxLen == 0) {
-        return 0;
-    }
-
-    return ((unsigned char*)str1)[0] - ((unsigned char*)str2)[0];
+    return c89str_findn(str, (size_t)-1, other, (size_t)-1, pResult);
 }
 
 C89STR_API int c89str_strncmpn(const char* str1, size_t str1Len, const char* str2, size_t str2Len)
@@ -1418,6 +1425,7 @@ C89STR_API c89str_bool32 c89str_is_all_digits(const char* str, size_t strLen)
 
     return C89STR_TRUE;
 }
+/* END c89str_helpers.c */
 
 
 
