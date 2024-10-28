@@ -1135,46 +1135,40 @@ C89STR_API int c89str_strnicmp(const char* str1, const char* str2, size_t count)
 
 
 /* BEG c89str_helpers.c */
-C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t strLen)
+static C89STR_INLINE size_t c89str_scan_leading_whitespace(const char* str, size_t len)
 {
-    if (str == NULL) {
-        return C89STR_TRUE;
+    size_t i;
+
+    if (str == NULL || len == 0) {
+        return C89STR_FALSE;
     }
 
-    while (str[0] != '\0' && strLen > 0) {
-        unsigned char c0 = (unsigned char)str[0];
+    i = 0;
+    while (str[i] != '\0' && i < len) {
+        unsigned char c0 = (unsigned char)str[i];
 
-        str    += 1;
-        strLen -= 1;
-
-        if (c0 >= 0x09 && c0 <= 0x0D) {
-            continue;
-        }
-        if (c0 == 0x20) {
+        if ((c0 >= 0x09 && c0 <= 0x0D) || c0 == 0x20) {
+            i += 1;
             continue;
         }
 
-        if (strLen > 0) {
-            unsigned char c1 = (unsigned char)str[0];
-
-            str    += 1;
-            strLen -= 1;
+        if (i + 1 < len) {
+            unsigned char c1 = (unsigned char)str[i + 1];
 
             if (c0 == 0xC2) {
                 if (c1 == 0x85 || c1 == 0xA0) {
+                    i += 2;
                     continue;   /* 0x0085, 0x00A0 */
                 }
             }
 
-            if (strLen > 1) {
-                unsigned char c2 = (unsigned char)str[0];
-
-                str    += 1;
-                strLen -= 1;
+            if (i + 2 < len) {
+                unsigned char c2 = (unsigned char)str[i + 2];
 
                 if (c0 == 0xE1) {
                     if (c1 == 0x9A) {
                         if (c2 == 0x80) {
+                            i += 3;
                             continue;   /* 0x1680 */
                         }
                     }
@@ -1183,16 +1177,19 @@ C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t st
                 if (c0 == 0xE2) {
                     if (c1 == 0x80) {
                         if (c2 >= 0x80 && c2 <= 0x8A) {
+                            i += 3;
                             continue;   /* 0x2000 - 0x200A */
                         }
 
                         if (c2 == 0xA8 || c2 == 0xA9 || c2 == 0xAF) {
+                            i += 3;
                             continue;   /* 0x2028, 0x2029, 0x202F */
                         }
                     }
 
                     if (c1 == 0x81) {
                         if (c2 == 0x9F) {
+                            i += 3;
                             continue;   /* 0x205F */
                         }
                     }
@@ -1201,6 +1198,7 @@ C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t st
                 if (c0 == 0xE3) {
                     if (c1 == 0x80) {
                         if (c2 == 0x80) {
+                            i += 3;
                             continue;   /* 0x3000 */
                         }
                     }
@@ -1208,10 +1206,27 @@ C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t st
             }
         }
 
-        return C89STR_FALSE;
+        /* Getting here means we've encountered a non-whitespace character. */
+        break;
     }
 
-    return C89STR_TRUE;
+    return i;
+}
+
+C89STR_API c89str_bool32 c89str_is_null_or_whitespace(const char* str, size_t len)
+{
+    size_t offset;
+
+    if (str == NULL) {
+        return C89STR_TRUE;
+    }
+
+    offset = c89str_scan_leading_whitespace(str, len);
+    if (offset == len || str[offset] == '\0') {
+        return C89STR_TRUE;
+    }
+
+    return C89STR_FALSE;
 }
 
 C89STR_API errno_t c89str_findn(const char* str, size_t strLen, const char* other, size_t otherLen, size_t* pResult)
@@ -1366,7 +1381,7 @@ C89STR_API errno_t c89str_to_uint(const char* str, size_t len, unsigned int* pVa
 {
     unsigned int value = 0;
 
-    if (pValue == NULL || c89str_is_null_or_whitespace(str, len)) {
+    if (pValue == NULL || str == NULL) {
         return EINVAL;
     }
 
@@ -1393,7 +1408,7 @@ C89STR_API errno_t c89str_to_int(const char* str, size_t len, int* pValue)
     int sign  = 1;
     int value = 0;
 
-    if (pValue == NULL || c89str_is_null_or_whitespace(str, len)) {
+    if (pValue == NULL || str == NULL || len == 0) {
         return EINVAL;
     }
 
@@ -5193,36 +5208,7 @@ C89STR_API size_t c89str_utf8_find_next_whitespace(const c89str_utf8* pUTF8, siz
 
 C89STR_API size_t c89str_utf8_ltrim_offset(const c89str_utf8* pUTF8, size_t utf8Len)
 {
-    size_t utf8RunningOffset = 0;
-
-    if (pUTF8 == NULL) {
-        return c89str_npos;
-    }
-
-    while (pUTF8[0] != '\0' && utf8Len > 0) {
-        c89str_utf32 utf32;
-        size_t utf8Processed;
-        int err;
-
-        err = c89str_utf8_to_utf32(&utf32, 1, NULL, pUTF8, utf8Len, &utf8Processed, 0);
-        if (err != 0 && err != ENOMEM) {
-            break;
-        }
-
-        if (utf8Processed == 0) {
-            break;
-        }
-
-        if (c89str_utf32_is_null_or_whitespace(&utf32, 1) == C89STR_FALSE) {
-            break;
-        }
-
-        utf8RunningOffset += utf8Processed;
-        pUTF8             += utf8Processed;
-        utf8Len           -= utf8Processed;
-    }
-
-    return utf8RunningOffset;
+    return c89str_scan_leading_whitespace((const char*)pUTF8, utf8Len);
 }
 
 C89STR_API size_t c89str_utf8_rtrim_offset(const c89str_utf8* pUTF8, size_t utf8Len)
@@ -5507,7 +5493,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
 
         /* First check if we're on whitespace. */
         {
-            size_t whitespaceLen = c89str_utf8_ltrim_offset(txt + off, (len - off));
+            size_t whitespaceLen = c89str_scan_leading_whitespace(txt + off, (len - off));
             if (whitespaceLen > 0) {
                 /* It's whitespace. Our lexer makes a distrinction between whitespace and new line characters so we need to check that too. */
                 size_t thisLineLen;
