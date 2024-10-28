@@ -288,10 +288,10 @@ C89STR_API c89str_bool32 c89str_utf32_is_null_or_whitespace(const c89str_utf32* 
 
 /* UTF-8 */
 C89STR_API c89str_bool32 c89str_utf8_is_null_or_whitespace(const c89str_utf8* pUTF8, size_t utf8Len);
-C89STR_API size_t c89str_utf8_next_whitespace(const c89str_utf8* pUTF8, size_t utf8Len);
+C89STR_API size_t c89str_utf8_find_next_whitespace(const c89str_utf8* pUTF8, size_t utf8Len);
 C89STR_API size_t c89str_utf8_ltrim_offset(const c89str_utf8* pUTF8, size_t utf8Len);
 C89STR_API size_t c89str_utf8_rtrim_offset(const c89str_utf8* pUTF8, size_t utf8Len);
-C89STR_API size_t c89str_utf8_next_line(const c89str_utf8* pUTF8, size_t utf8Len, size_t* pThisLineLen);
+C89STR_API size_t c89str_utf8_find_next_line(const c89str_utf8* pUTF8, size_t utf8Len, size_t* pThisLineLen);
 
 
 /* Dynamic String API */
@@ -5156,7 +5156,7 @@ C89STR_API c89str_bool32 c89str_utf8_is_null_or_whitespace(const c89str_utf8* pU
     return c89str_is_null_or_whitespace((const char*)pUTF8, utf8Len);
 }
 
-C89STR_API size_t c89str_utf8_next_whitespace(const c89str_utf8* pUTF8, size_t utf8Len)
+C89STR_API size_t c89str_utf8_find_next_whitespace(const c89str_utf8* pUTF8, size_t utf8Len)
 {
     size_t utf8RunningOffset = 0;
 
@@ -5261,7 +5261,7 @@ C89STR_API size_t c89str_utf8_rtrim_offset(const c89str_utf8* pUTF8, size_t utf8
     return utf8LastNonWhitespaceOffset;
 }
 
-C89STR_API size_t c89str_utf8_next_line(const c89str_utf8* pUTF8, size_t utf8Len, size_t* pThisLineLen)
+C89STR_API size_t c89str_utf8_find_next_line(const c89str_utf8* pUTF8, size_t utf8Len, size_t* pThisLineLen)
 {
     size_t thisLen = 0;
     size_t nextBeg = 0;
@@ -5372,7 +5372,7 @@ static errno_t c89str_lexer_set_token(c89str_lexer* pLexer, c89str_utf32 token, 
         const char* pRunningStr = pLexer->pTokenStr;
         for (;;) {
             size_t thisLineLen;
-            size_t nextLineOff = c89str_utf8_next_line(pRunningStr, pLexer->tokenLen - (pRunningStr - pLexer->pTokenStr), &thisLineLen);
+            size_t nextLineOff = c89str_utf8_find_next_line(pRunningStr, pLexer->tokenLen - (pRunningStr - pLexer->pTokenStr), &thisLineLen);
             if (nextLineOff == thisLineLen) {
                 break;  /* Reached the end. */
             }
@@ -5511,7 +5511,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
             if (whitespaceLen > 0) {
                 /* It's whitespace. Our lexer makes a distrinction between whitespace and new line characters so we need to check that too. */
                 size_t thisLineLen;
-                size_t nextLineOff = c89str_utf8_next_line(txt + off, (len - off), &thisLineLen);
+                size_t nextLineOff = c89str_utf8_find_next_line(txt + off, (len - off), &thisLineLen);
                 if (thisLineLen > whitespaceLen) {
                     /* There's no new line character within the whitespace area. */
                     result = c89str_lexer_set_token(pLexer, c89str_token_type_whitespace, whitespaceLen);
@@ -5553,7 +5553,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
             openingLen = c89str_strlen(pLexer->options.pLineCommentOpeningToken);
             
             off += openingLen;
-            c89str_utf8_next_line(txt + off, (len - off), &thisLineLen);
+            c89str_utf8_find_next_line(txt + off, (len - off), &thisLineLen);
             result = c89str_lexer_set_token(pLexer, c89str_token_type_comment, thisLineLen + openingLen);
             if (pLexer->options.skipComments) {
                 continue;
@@ -5929,7 +5929,7 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
                     (txt[off] >= 'A' && txt[off] <= 'Z') ||
                     (txt[off] == '_')                    ||
                     ((unsigned char)txt[off] >= 0x80)) {
-                    size_t tokenMaxLen = c89str_utf8_next_whitespace(txt + off, (len - off));   /* <-- We'll be using this to ensure we don't include any Unicode whitespace characters. */
+                    size_t tokenMaxLen = c89str_utf8_find_next_whitespace(txt + off, (len - off));   /* <-- We'll be using this to ensure we don't include any Unicode whitespace characters. */
                     size_t tokenLen = 0;
 
                     while (tokenLen < (len - off)) {
