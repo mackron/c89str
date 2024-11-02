@@ -5414,7 +5414,7 @@ static errno_t c89str_lexer_set_token(c89str_lexer* pLexer, c89str_utf32 token, 
         for (;;) {
             size_t thisLineLen;
             size_t nextLineOff = c89str_find_next_line(pRunningStr, pLexer->tokenLen - (pRunningStr - pLexer->pTokenStr), &thisLineLen);
-            if (nextLineOff == thisLineLen) {
+            if (nextLineOff == thisLineLen || nextLineOff == c89str_npos) {
                 break;  /* Reached the end. */
             }
 
