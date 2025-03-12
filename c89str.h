@@ -1547,12 +1547,12 @@ C89STR_API errno_t c89str_to_int(const char* str, size_t len, int* pValue)
 
     if (str[0] == '-') {
         sign = -1;
+        
+        str += 1;
+        len -= 1;
     } else {
         sign = +1;
     }
-
-    str += 1;
-    len -= 1;
 
     while (len > 0 && str[0] != '\0') {
         if (str[0] >= '0' && str[0] <= '9') {
