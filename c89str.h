@@ -381,6 +381,7 @@ typedef struct
         c89str_bool32 skipNewlines;
         c89str_bool32 skipComments;
         c89str_bool32 allowDashesInIdentifiers;
+        c89str_bool32 noColonColon;
         const char* pLineCommentOpeningToken;
         const char* pBlockCommentOpeningToken;
         const char* pBlockCommentClosingToken;
@@ -5940,9 +5941,11 @@ C89STR_API errno_t c89str_lexer_next(c89str_lexer* pLexer)
 
             case ':':
             {
-                if (off+1 < len) {
-                    if (txt[off+1] == ':') {
-                        return c89str_lexer_set_token(pLexer, c89str_token_type_coloncolon, 2);
+                if (!pLexer->options.noColonColon) {
+                    if (off+1 < len) {
+                        if (txt[off+1] == ':') {
+                            return c89str_lexer_set_token(pLexer, c89str_token_type_coloncolon, 2);
+                        }
                     }
                 }
                 return c89str_lexer_set_single_char(pLexer, txt[off]);
