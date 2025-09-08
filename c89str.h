@@ -1214,6 +1214,14 @@ static C89STR_INLINE size_t c89str_scan_leading_newline(const char* str, size_t 
     while (str[i] != '\0' && i < len) {
         unsigned char c0 = (unsigned char)str[i];
 
+        /* We need to check for a CRLF pattern. */
+        if (c0 == 0x0D) {
+            if (i + 1 < len && (unsigned char)str[i + 1] == 0x0A) {
+                i += 2;
+                break;   /* CRLF */
+            }
+        }
+
         if (c0 >= 0x0A && c0 <= 0x0D) {
             i += 1;
             break;
