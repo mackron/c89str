@@ -1254,7 +1254,7 @@ C89STR_API size_t c89str_ltrim(const char* str, size_t len)
 {
     size_t i;
 
-    if (str == NULL || len == 0) {
+    if (str == NULL) {
         return c89str_npos;
     }
 
